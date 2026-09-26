@@ -11,10 +11,12 @@ std::string json_escape(const std::string& value) {
     for (const unsigned char ch : value) {
         switch (ch) {
         case '\\':
-            result += "\\\\";
+            result.push_back('\\');
+            result.push_back('\\');
             break;
         case '"':
-            result += "\\"";
+            result.push_back('\\');
+            result.push_back('"');
             break;
         case '\b':
             result += "\\b";
@@ -37,7 +39,7 @@ std::string json_escape(const std::string& value) {
                 result += hex[(ch >> 4) & 0x0f];
                 result += hex[ch & 0x0f];
             } else {
-                result += static_cast<char>(ch);
+                result.push_back(static_cast<char>(ch));
             }
             break;
         }
@@ -60,12 +62,15 @@ std::string serialize_resolved(
     case tpc::JsonValue::Type::Number:
         return value.string_value();
 
-    case tpc::JsonValue::Type::String:
-        return "\"" +
-            json_escape(
-                tpc::expand_variables(value.string_value(), data)
-            ) +
-            "\"";
+    case tpc::JsonValue::Type::String: {
+        std::string result;
+        result.push_back('"');
+        result += json_escape(
+            tpc::expand_variables(value.string_value(), data)
+        );
+        result.push_back('"');
+        return result;
+    }
 
     case tpc::JsonValue::Type::Array: {
         std::string result = "[";
@@ -97,9 +102,10 @@ std::string serialize_resolved(
 
             first = false;
 
-            result += "\"";
+            result.push_back('"');
             result += json_escape(key);
-            result += "\":";
+            result.push_back('"');
+            result += ":";
             result += serialize_resolved(item, data);
         }
 
