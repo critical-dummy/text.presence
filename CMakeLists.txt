@@ -8,6 +8,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_executable(tpc
     src/main.cpp
     src/tpc/presence_data.cpp
+    src/tpc/target_detector.cpp
+    src/targets/generic_window.cpp
 )
 
 target_include_directories(tpc PRIVATE src)
