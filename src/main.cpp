@@ -138,9 +138,11 @@ void print_help() {
         << "Usage:\n"
         << "  tpc.exe                    Start the TPC TUI\n"
         << "  tpc.exe --watch [ms]       Start the live TPC TUI\n"
-        << "  tpc.exe --json              Print one raw PresenceData snapshot\n"
-        << "  tpc.exe --target <path>     Use a specific target.json\n"
-        << "  tpc.exe --help              Show this help\n";
+        << "  tpc.exe --json                   Print one raw PresenceData snapshot\n"
+        << "  tpc.exe --target <path>          Use a specific target preset\n"
+        << "  text.presence --launch upc --app discord\n"
+        << "                                  Launch UPC with the Discord connector\n"
+        << "  tpc.exe --help                   Show this help\n";
 }
 
 } // namespace
@@ -152,6 +154,8 @@ int main(int argc, char* argv[]) {
     bool raw_json = false;
     unsigned int interval_ms = kDefaultWatchIntervalMs;
     std::string target_override;
+    std::string launch_mode;
+    std::string app_connector;
 
     for (int i = 1; i < argc; ++i) {
         const std::string argument = argv[i];
@@ -163,6 +167,32 @@ int main(int argc, char* argv[]) {
 
         if (argument == "--json") {
             raw_json = true;
+            continue;
+        }
+
+        if (argument == "--launch") {
+            if (i + 1 >= argc) {
+                std::cerr << "--launch requires a mode\n";
+                return 2;
+            }
+
+            launch_mode = argv[++i];
+
+            if (launch_mode != "upc") {
+                std::cerr << "Unknown launch mode: " << launch_mode << "\n";
+                return 2;
+            }
+
+            continue;
+        }
+
+        if (argument == "--app") {
+            if (i + 1 >= argc) {
+                std::cerr << "--app requires a connector name\n";
+                return 2;
+            }
+
+            app_connector = argv[++i];
             continue;
         }
 
@@ -199,6 +229,15 @@ int main(int argc, char* argv[]) {
 
         std::cerr << "Unknown argument: " << argument << "\n";
         return 2;
+    }
+
+    if (!launch_mode.empty() && app_connector.empty()) {
+        // UPC can run without an external connector, but --app selects the
+        // application RPC consumer when one is provided.
+    }
+
+    if (!launch_mode.empty() && app_connector.empty()) {
+        app_connector.clear();
     }
 
     tpc::ProviderRegistry registry;
