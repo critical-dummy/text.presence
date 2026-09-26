@@ -1,0 +1,18 @@
+{
+  "tpc_title": "running Text Presence.",
+  "TPC_RPC": {
+    "title": "Generic Window",
+    "lines": [
+      "{application}",
+      "Provider: {provider}",
+      "Process: {process}",
+      "PID: {process_id}",
+      "Window: {window}"
+    ]
+  },
+  "APP_RPC": {
+    "title": "You're using {application}",
+    "details": "{window}",
+    "state": "{provider}"
+  }
+}
