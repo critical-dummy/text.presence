@@ -12,7 +12,7 @@ TPC detects targets and collects runtime state. UPC formats that state into user
 
 Native C++17 Windows executable. Target providers are independent from the core data model.
 
-The current detector captures the foreground window process, PID, and title.
+The current detector captures the foreground window process, PID, and title. Detection is routed through target providers; FL Studio is recognized as `fl_studio` before the generic-window fallback.
 
 ## Run
 
