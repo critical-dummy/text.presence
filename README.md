@@ -124,7 +124,7 @@ When using `--launch upc --app discord`, `APP_RPC` must contain an `application_
 }
 ```
 
-The Discord adapter uses `details` and `state` for the two customizable Rich Presence lines. The activity name shown on Discord comes from the application's name in the Discord Developer Portal; the Social SDK does not let TPC override that field.
+The Discord adapter maps `title` to the Rich Presence application name, `details` to the details line, and `state` to the state line. Current Discord Social SDK releases support customizing the displayed application name through `activity.name`.
 
 Build the adapter explicitly by supplying the SDK header directory and the C library/import library:
 
