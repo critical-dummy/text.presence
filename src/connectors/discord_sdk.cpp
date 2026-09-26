@@ -116,10 +116,6 @@ bool DiscordSdkConnector::publish(const std::string& payload) {
 
         std::string value;
 
-        if (read_string(root, "title", value) && !value.empty()) {
-            activity.SetName(value);
-        }
-
         if (read_string(root, "details", value) && !value.empty()) {
             activity.SetDetails(value);
         }
