@@ -91,12 +91,45 @@ void replace_previous_presence() {
         return;
     }
 
-    SetConsoleCursorPosition(g_console_output, g_presence_origin);
+    CONSOLE_SCREEN_BUFFER_INFO info{};
 
-    // Clear from the beginning of the old Presence block to the end of
-    // the terminal. This does not touch anything above the saved origin.
-    std::cout << "\x1b[0J";
-    std::cout.flush();
+    if (!GetConsoleScreenBufferInfo(g_console_output, &info)) {
+        return;
+    }
+
+    const DWORD buffer_width = info.dwSize.X;
+    const DWORD buffer_height = info.dwSize.Y;
+
+    const DWORD origin_index =
+        static_cast<DWORD>(g_presence_origin.Y) * buffer_width +
+        static_cast<DWORD>(g_presence_origin.X);
+
+    const DWORD buffer_size = buffer_width * buffer_height;
+
+    if (origin_index >= buffer_size) {
+        return;
+    }
+
+    const DWORD clear_count = buffer_size - origin_index;
+    DWORD written = 0;
+
+    FillConsoleOutputCharacterW(
+        g_console_output,
+        L' ',
+        clear_count,
+        g_presence_origin,
+        &written
+    );
+
+    FillConsoleOutputAttribute(
+        g_console_output,
+        info.wAttributes,
+        clear_count,
+        g_presence_origin,
+        &written
+    );
+
+    SetConsoleCursorPosition(g_console_output, g_presence_origin);
 #endif
 }
 
@@ -176,10 +209,8 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    const bool virtual_terminal = enable_virtual_terminal();
-    if (virtual_terminal) {
-        save_presence_cursor();
-    }
+    enable_virtual_terminal();
+    save_presence_cursor();
 
     tpc::PresenceData previous;
     bool has_previous = false;
@@ -191,7 +222,7 @@ int main(int argc, char* argv[]) {
         if (!has_previous || current.application != previous.application ||
             current.title != previous.title ||
             current.variables != previous.variables) {
-            if (has_previous && virtual_terminal) {
+            if (has_previous) {
                 replace_previous_presence();
             }
 
