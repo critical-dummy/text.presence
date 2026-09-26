@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "json.hpp"
+#include "presence_data.hpp"
 
 namespace tpc {
 
