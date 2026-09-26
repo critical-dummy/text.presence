@@ -1,4 +1,5 @@
 #pragma once
+
 #include <string>
 
 namespace tpc {
@@ -9,6 +10,7 @@ public:
 
     static unsigned long foreground_process_id();
     static std::wstring foreground_process_name();
+    static std::wstring foreground_process_command_line();
     static std::wstring foreground_window_title();
 };
 
