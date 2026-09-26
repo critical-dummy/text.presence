@@ -88,6 +88,10 @@ bool JsonValue::is_string() const {
     return type_ == Type::String;
 }
 
+bool JsonValue::boolean_value() const {
+    return boolean_value_;
+}
+
 const std::string& JsonValue::string_value() const {
     return string_value_;
 }
