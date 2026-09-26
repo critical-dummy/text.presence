@@ -85,7 +85,6 @@ std::size_t print_presence(const tpc::PresenceData& data) {
     std::cout << "}\n";
     std::cout.flush();
 }
-}
 
 bool enable_virtual_terminal() {
 #ifdef _WIN32
