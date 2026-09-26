@@ -67,7 +67,7 @@ bool Tui::start() {
     wchar_t original_title[512]{};
     const DWORD title_length = GetConsoleTitleW(
         original_title,
-        static_cast<DWORD>(std::size(original_title))
+        static_cast<DWORD>(sizeof(original_title) / sizeof(original_title[0]))
     );
 
     if (title_length > 0) {
