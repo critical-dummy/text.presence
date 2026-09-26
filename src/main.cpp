@@ -3,13 +3,16 @@
 #include <atomic>
 #include <chrono>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <thread>
 
+#include "tpc/app_connector_registry.hpp"
 #include "tpc/presence_data.hpp"
 #include "tpc/provider_registry.hpp"
 #include "tpc/target_config.hpp"
 #include "tpc/tui.hpp"
+#include "tpc/upc.hpp"
 
 namespace {
 
@@ -231,6 +234,16 @@ int main(int argc, char* argv[]) {
         return 2;
     }
 
+    if (!app_connector.empty() && launch_mode != "upc") {
+        std::cerr << "--app requires --launch upc\n";
+        return 2;
+    }
+
+    if (launch_mode == "upc" && app_connector.empty()) {
+        std::cerr << "--launch upc requires --app <connector>\n";
+        return 2;
+    }
+
     tpc::ProviderRegistry registry;
     const tpc::TargetProvider& initial_provider = registry.detect();
     const tpc::PresenceData initial_data = initial_provider.capture();
@@ -249,6 +262,34 @@ int main(int argc, char* argv[]) {
     if (!tui.start()) {
         std::cerr << "Could not start TPC TUI. Use --json for raw output.\n";
         return 1;
+    }
+
+    std::unique_ptr<tpc::AppRpcConnector> app_rpc_connector;
+
+    if (launch_mode == "upc") {
+        app_rpc_connector =
+            tpc::create_app_rpc_connector(app_connector);
+
+        if (!app_rpc_connector) {
+            tui.stop();
+
+            std::cerr
+                << "App RPC connector unavailable: "
+                << app_connector << "\n";
+
+#ifdef TPC_ENABLE_DISCORD_SDK
+            std::cerr
+                << "For Discord, verify the Social SDK connector configuration.\n";
+#else
+            if (app_connector == "discord") {
+                std::cerr
+                    << "Reconfigure with TPC_ENABLE_DISCORD_SDK=ON and the Discord Social SDK paths.\n";
+            }
+#endif
+
+            SetConsoleCtrlHandler(console_handler, FALSE);
+            return 1;
+        }
     }
 
     tpc::PresenceData previous;
@@ -272,14 +313,37 @@ int main(int argc, char* argv[]) {
 
             tui.render(config, current);
 
+            if (app_rpc_connector) {
+                const tpc::UpcPayload payload =
+                    tpc::build_app_rpc_payload(config, current);
+
+                if (payload.available) {
+                    if (!app_rpc_connector->publish(payload.json)) {
+                        std::cerr
+                            << "APP_RPC publish failed for connector: "
+                            << app_rpc_connector->id() << "\n";
+                    }
+                } else {
+                    app_rpc_connector->clear();
+                }
+            }
+
             previous = current;
             previous_provider = provider.id();
             has_previous = true;
         }
 
+        if (app_rpc_connector) {
+            app_rpc_connector->tick();
+        }
+
         std::this_thread::sleep_for(
             std::chrono::milliseconds(interval_ms)
         );
+    }
+
+    if (app_rpc_connector) {
+        app_rpc_connector->clear();
     }
 
     tui.stop();
