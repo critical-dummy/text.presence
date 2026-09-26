@@ -64,6 +64,19 @@ bool Tui::start() {
         return false;
     }
 
+    wchar_t original_title[512]{};
+    const DWORD title_length = GetConsoleTitleW(
+        original_title,
+        static_cast<DWORD>(std::size(original_title))
+    );
+
+    if (title_length > 0) {
+        original_console_title_.assign(
+            original_title,
+            title_length
+        );
+    }
+
     HANDLE buffer = CreateConsoleScreenBuffer(
         GENERIC_READ | GENERIC_WRITE,
         0,
@@ -108,10 +121,15 @@ void Tui::stop() {
         SetConsoleActiveScreenBuffer(original);
     }
 
+    if (!original_console_title_.empty()) {
+        SetConsoleTitleW(original_console_title_.c_str());
+    }
+
     if (buffer != INVALID_HANDLE_VALUE && buffer != nullptr) {
         CloseHandle(buffer);
     }
 
+    original_console_title_.clear();
     original_buffer_ = nullptr;
     tui_buffer_ = nullptr;
 #endif
@@ -190,12 +208,30 @@ void Tui::write_line(
 #endif
 }
 
+void Tui::update_console_title(const std::string& title) {
+#ifdef _WIN32
+    const std::wstring wide_title = wide_from_utf8(title);
+
+    if (!wide_title.empty()) {
+        SetConsoleTitleW(wide_title.c_str());
+    }
+#else
+    (void)title;
+#endif
+}
+
 void Tui::render(
     const TargetConfig& config,
     const PresenceData& data
 ) {
 #ifdef _WIN32
     if (!active_) return;
+
+    update_console_title(
+        config.tpc_title.empty()
+            ? "Text Presence"
+            : config.tpc_title
+    );
 
     HANDLE buffer = as_handle(tui_buffer_);
 
