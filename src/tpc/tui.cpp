@@ -244,7 +244,7 @@ void Tui::render(
     const short screen_width = info.dwSize.X;
     const short screen_height = info.dwSize.Y;
 
-    if (screen_width < 10 || screen_height < 6) {
+    if (screen_width < 10 || screen_height < 9) {
         return;
     }
 
@@ -265,6 +265,10 @@ void Tui::render(
         };
     }
 
+    if (raw_lines.size() > 6) {
+        raw_lines.resize(6);
+    }
+
     std::vector<std::wstring> body;
     body.reserve(raw_lines.size());
 
@@ -274,30 +278,28 @@ void Tui::render(
         );
     }
 
-    std::wstring title = wide_from_utf8(
+    const std::wstring heading = L" TPC";
+    const std::wstring title = wide_from_utf8(
         config.tpc_title.empty()
             ? "Text Presence"
             : config.tpc_title
     );
-
-    std::wstring title_line = L"  ";
-    title_line += title;
+    const std::wstring rpc_heading = wide_from_utf8(rpc_title);
 
     const std::size_t max_body_length = [&body]() {
         std::size_t value = 0;
+
         for (const auto& line : body) {
             value = std::max(value, line.size());
         }
+
         return value;
     }();
 
-    const std::size_t title_length = title_line.size();
-    const std::size_t rpc_title_length = wide_from_utf8(rpc_title).size();
-
     std::size_t box_width = std::max({
         std::size_t(42),
-        title_length + 4,
-        rpc_title_length + 4,
+        title.size() + 4,
+        rpc_heading.size() + 4,
         max_body_length + 4
     });
 
@@ -309,6 +311,9 @@ void Tui::render(
     const std::wstring border =
         L"+" + std::wstring(box_width - 2, L'-') + L"+";
 
+    const std::wstring separator =
+        L"|" + std::wstring(box_width - 2, L'-') + L"|";
+
     const std::wstring empty =
         L"|" + std::wstring(box_width - 2, L' ') + L"|";
 
@@ -319,40 +324,59 @@ void Tui::render(
             line.resize(box_width - 4);
         }
 
-        line =
+        return
             L"| " + line +
             std::wstring(
                 box_width - 3 - line.size(),
                 L' '
             ) +
             L"|";
-
-        return line;
     };
 
     short row = 0;
 
-    write_line(row++, L" TPC", screen_width);
+    write_line(row++, heading, screen_width);
     write_line(row++, border, screen_width);
     write_line(row++, boxed(title), screen_width);
-    write_line(row++, empty, screen_width);
+
+    if (row < screen_height - 1) {
+        write_line(row++, separator, screen_width);
+    }
+
     write_line(
         row++,
-        boxed(wide_from_utf8(rpc_title)),
+        boxed(rpc_heading),
         screen_width
     );
-
-    for (const auto& line : body) {
-        if (row >= screen_height - 1) break;
-        write_line(row++, boxed(line), screen_width);
-    }
 
     if (row < screen_height - 1) {
         write_line(row++, empty, screen_width);
     }
 
-    if (row < screen_height) {
+    for (const auto& line : body) {
+        if (row >= screen_height - 2) break;
+        write_line(row++, boxed(line), screen_width);
+    }
+
+    if (row < screen_height - 2) {
+        write_line(row++, empty, screen_width);
+    }
+
+    if (row < screen_height - 1) {
         write_line(row++, border, screen_width);
+    }
+
+    if (row < screen_height) {
+        const std::string target =
+            data.variables.contains("provider")
+                ? data.variables.at("provider")
+                : data.application;
+
+        const std::wstring footer =
+            L" Target: " + wide_from_utf8(target) +
+            L"  |  Ctrl+C to exit";
+
+        write_line(row++, footer, screen_width);
     }
 
     SetConsoleCursorPosition(buffer, COORD{0, 0});
@@ -361,5 +385,4 @@ void Tui::render(
     (void)data;
 #endif
 }
-
 } // namespace tpc
