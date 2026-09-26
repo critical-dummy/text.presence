@@ -12,6 +12,12 @@ namespace {
 
 constexpr unsigned int kDefaultWatchIntervalMs = 500;
 
+#ifdef _WIN32
+HANDLE g_console_output = INVALID_HANDLE_VALUE;
+COORD g_presence_origin{};
+bool g_presence_origin_valid = false;
+#endif
+
 std::string json_escape(const std::string& value) {
     std::string result;
     result.reserve(value.size() + 8);
@@ -55,18 +61,42 @@ std::string json_escape(const std::string& value) {
     return result;
 }
 
-void save_presence_cursor() {
+bool save_presence_cursor() {
 #ifdef _WIN32
-    std::cout << "\x1b[s";
+    g_console_output = GetStdHandle(STD_OUTPUT_HANDLE);
+
+    if (g_console_output == INVALID_HANDLE_VALUE ||
+        g_console_output == nullptr) {
+        return false;
+    }
+
+    CONSOLE_SCREEN_BUFFER_INFO info{};
+
+    if (!GetConsoleScreenBufferInfo(g_console_output, &info)) {
+        return false;
+    }
+
+    g_presence_origin = info.dwCursorPosition;
+    g_presence_origin_valid = true;
+    return true;
+#else
+    return false;
 #endif
 }
 
 void replace_previous_presence() {
 #ifdef _WIN32
-    // Return to the beginning of the presence block, clear everything
-    // below it, then let the next report recreate the block.
-    std::cout << "\x1b[u";
+    if (!g_presence_origin_valid ||
+        g_console_output == INVALID_HANDLE_VALUE) {
+        return;
+    }
+
+    SetConsoleCursorPosition(g_console_output, g_presence_origin);
+
+    // Clear from the beginning of the old Presence block to the end of
+    // the terminal. This does not touch anything above the saved origin.
     std::cout << "\x1b[0J";
+    std::cout.flush();
 #endif
 }
 
