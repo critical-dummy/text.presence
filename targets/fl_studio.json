@@ -1,0 +1,18 @@
+{
+  "tpc_title": "running Text Presence.",
+  "TPC_RPC": {
+    "title": "FL Studio",
+    "lines": [
+      "{application}",
+      "Provider: {provider}",
+      "Process: {process}",
+      "PID: {process_id}",
+      "Window: {window}"
+    ]
+  },
+  "APP_RPC": {
+    "title": "You're using FL Studio",
+    "details": "{window}",
+    "state": "{provider} • {process}"
+  }
+}
