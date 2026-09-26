@@ -1,40 +1,109 @@
 # TPC
 
-**Text Presence Core** — runtime presence data acquisition for UPC.
+**Text Presence Core** — a Presence runtime/framework for target detection, TUI rendering, and application RPC.
 
 ```text
-Target application → TPC → normalized presence data → UPC → rendered presence
+Application
+    ↓
+TPC Target Detection
+    ↓
+Target Provider
+    ↓
+PresenceData
+    ↓
+target.json
+    ├─ tpc_title
+    ├─ TPC_RPC
+    └─ APP_RPC
+         ↓
+    TPC TUI / App RPC connector
 ```
-
-TPC detects targets and collects runtime state. UPC formats that state into user-defined Presence text.
 
 ## v0.1
 
-Native C++17 Windows executable. Target providers are independent from the core data model.
+Native C++17 Windows executable.
 
-The current detector captures the foreground window process, PID, and title. Detection is routed through target providers; FL Studio is recognized as `fl_studio` before the generic-window fallback. The FL Studio provider currently uses Windows-native process and window detection.
+Current runtime includes:
+
+- foreground process, PID, and window-title detection
+- provider registry with `generic_window` and `fl_studio`
+- normalized `PresenceData`
+- target JSON loading
+- `{variable}` expansion
+- dedicated TPC TUI
+- change-driven live updates
+- `APP_RPC` configuration loading for future connectors
+
+ASIO is not part of the TPC communication path. The current FL Studio provider uses stable Windows-native process/window detection only.
 
 ## Run
 
-One snapshot:
+Start the TPC TUI:
 
 ```bat
-build\\Release\\tpc.exe
+build\Release\tpc.exe
 ```
 
-Continuous snapshots every 500 ms:
+Live mode with the default 500 ms detector interval:
 
 ```bat
-build\\Release\\tpc.exe --watch
+build\Release\tpc.exe --watch
 ```
 
-Custom watch interval in milliseconds:
+Custom detector interval:
 
 ```bat
-build\\Release\\tpc.exe --watch 1000
+build\Release\tpc.exe --watch 1000
 ```
 
-Watch mode polls the detector, but re-renders the presence block only when the detected state changes. The previous block is cleared before the new report is generated.
+Use a specific target configuration:
+
+```bat
+build\Release\tpc.exe --target targets\fl_studio.json
+```
+
+Print one raw `PresenceData` snapshot for debugging:
+
+```bat
+build\Release\tpc.exe --json
+```
+
+Show command-line help:
+
+```bat
+build\Release\tpc.exe --help
+```
+
+## Target configuration
+
+Target files live under `targets/` and are selected automatically from the provider id.
+
+Example:
+
+```json
+{
+  "tpc_title": "running Text Presence.",
+  "TPC_RPC": {
+    "title": "FL Studio",
+    "lines": [
+      "{application}",
+      "Provider: {provider}",
+      "Process: {process}",
+      "PID: {process_id}",
+      "Window: {window}"
+    ]
+  },
+  "APP_RPC": {
+    "title": "You're using FL Studio",
+    "details": "{window}",
+    "state": "{provider} • {process}"
+  }
+}
+```
+
+`TPC_RPC.lines` is limited to six lines. `APP_RPC` is loaded into the target model but is not sent anywhere yet; connectors will consume it later.
+
+Unknown `{variable}` placeholders are preserved instead of being silently removed.
 
 ## Build
 
