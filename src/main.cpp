@@ -24,7 +24,7 @@ std::string utf8_from_wide(const std::wstring& value) {
 
     if (size <= 0) return {};
 
-    std::string result(static_cast<size_t>(size), '\\0');
+    std::string result(static_cast<size_t>(size), '\0');
 
     WideCharToMultiByte(
         CP_UTF8,
@@ -46,25 +46,25 @@ std::string json_escape(const std::string& value) {
 
     for (const unsigned char ch : value) {
         switch (ch) {
-        case '\\\\':
+        case '\\':
             result += "\\\\";
             break;
         case '"':
             result += "\\\"";
             break;
-        case '\\b':
+        case '\b':
             result += "\\b";
             break;
-        case '\\f':
+        case '\f':
             result += "\\f";
             break;
-        case '\\n':
+        case '\n':
             result += "\\n";
             break;
-        case '\\r':
+        case '\r':
             result += "\\r";
             break;
-        case '\\t':
+        case '\t':
             result += "\\t";
             break;
         default:
@@ -99,20 +99,20 @@ int main() {
     data.variables["window"] = window_title;
     data.variables["process_id"] = std::to_string(process_id);
 
-    std::cout << "{\\n";
-    std::cout << "  \\"application\\": \\""
-              << json_escape(data.application) << "\\",\\n";
-    std::cout << "  \\"title\\": \\""
-              << json_escape(data.title) << "\\",\\n";
-    std::cout << "  \\"variables\\": {\\n";
-    std::cout << "    \\"process\\": \\""
-              << json_escape(data.variables["process"]) << "\\",\\n";
-    std::cout << "    \\"window\\": \\""
-              << json_escape(data.variables["window"]) << "\\",\\n";
-    std::cout << "    \\"process_id\\": \\""
-              << json_escape(data.variables["process_id"]) << "\\"\\n";
-    std::cout << "  }\\n";
-    std::cout << "}\\n";
+    std::cout << "{\n";
+    std::cout << "  \"application\": \""
+              << json_escape(data.application) << "\",\n";
+    std::cout << "  \"title\": \""
+              << json_escape(data.title) << "\",\n";
+    std::cout << "  \"variables\": {\n";
+    std::cout << "    \"process\": \""
+              << json_escape(data.variables["process"]) << "\",\n";
+    std::cout << "    \"window\": \""
+              << json_escape(data.variables["window"]) << "\",\n";
+    std::cout << "    \"process_id\": \""
+              << json_escape(data.variables["process_id"]) << "\"\n";
+    std::cout << "  }\n";
+    std::cout << "}\n";
 
     return 0;
 }
