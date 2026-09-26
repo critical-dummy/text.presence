@@ -43,7 +43,7 @@ std::wstring TargetDetector::foreground_process_name() {
     HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, process_id);
     if (!process) return {};
 
-    std::wstring path(32768, L'\\0');
+    std::wstring path(32768, L'\0');
     DWORD path_size = static_cast<DWORD>(path.size());
 
     const BOOL ok = QueryFullProcessImageNameW(
@@ -74,7 +74,7 @@ std::wstring TargetDetector::foreground_window_title() {
     const int length = GetWindowTextLengthW(hwnd);
     if (length <= 0) return {};
 
-    std::wstring title(static_cast<size_t>(length) + 1, L'\\0');
+    std::wstring title(static_cast<size_t>(length) + 1, L'\0');
     const int copied = GetWindowTextW(
         hwnd,
         title.data(),
