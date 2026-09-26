@@ -10,11 +10,35 @@ TPC detects targets and collects runtime state. UPC formats that state into user
 
 ## v0.1
 
-Native C++17 Windows executable. Target providers will be added independently from the core data model.
+Native C++17 Windows executable. Target providers are independent from the core data model.
+
+The current detector captures the foreground window process, PID, and title.
+
+## Run
+
+One snapshot:
+
+```bat
+build\\Release\\tpc.exe
+```
+
+Continuous snapshots every 500 ms:
+
+```bat
+build\\Release\\tpc.exe --watch
+```
+
+Custom watch interval in milliseconds:
+
+```bat
+build\\Release\\tpc.exe --watch 1000
+```
+
+Watch mode emits newline-delimited JSON snapshots so another runtime layer can consume the stream.
 
 ## Build
 
-```powershell
+```bat
 cmake -S . -B build
 cmake --build build --config Release
 ```
