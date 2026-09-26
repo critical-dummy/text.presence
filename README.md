@@ -35,6 +35,7 @@ Current runtime includes:
 - `APP_RPC` configuration loading for future connectors
 - UPC APP_RPC payload resolution with recursive variable expansion
 - application RPC connector interface
+- optional Discord Social SDK connector
 
 ASIO is not part of the TPC communication path. The current FL Studio provider uses stable Windows-native process/window detection only.
 
@@ -108,6 +109,35 @@ Example:
 `TPC_RPC.lines` is limited to six lines. `APP_RPC` is loaded into the target model but is not sent anywhere yet; connectors will consume it later.
 
 UPC resolves every string value inside `APP_RPC` using the same `{variable}` namespace as `TPC_RPC`. The resolved payload remains a JSON document until an `AppRpcConnector` consumes it, so connector transport is kept separate from TPC detection and configuration.
+
+### Discord connector
+
+The Discord connector is built against Discord's current Social SDK rather than a custom bridge. Discord distributes the SDK through the Developer Portal, and its C++ wrapper is header-only over the shared C library. The desktop SDK can publish Rich Presence without connecting to the Discord gateway.
+
+When using `--launch upc --app discord`, `APP_RPC` must contain an `application_id` string containing your Discord application ID:
+
+```json
+"APP_RPC": {
+  "application_id": "YOUR_DISCORD_APPLICATION_ID",
+  "title": "You're using FL Studio",
+  "details": "{window}",
+  "state": "{provider}"
+}
+```
+
+The Discord adapter maps `title` to the activity name, `details` to Discord's details line, and `state` to Discord's state line.
+
+Build the adapter explicitly by supplying the SDK header directory and the C library/import library:
+
+```bat
+cmake -S . -B build -DTPC_ENABLE_DISCORD_SDK=ON ^
+  -DTPC_DISCORD_SDK_INCLUDE_DIR=C:\\path\\to\\discord-sdk\\public ^
+  -DTPC_DISCORD_SDK_LIBRARY=C:\\path\\to\\discord-sdk\\lib\\discord_partner_sdk.lib
+
+cmake --build build --config Release
+```
+
+The exact SDK package paths can vary by release, so TPC does not hard-code a vendor-specific directory layout.
 
 `tpc_title` is user-customizable. It is rendered as the first line of the TPC TUI box and is also used as the Windows console title bar while that target is active.
 
