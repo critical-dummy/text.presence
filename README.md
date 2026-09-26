@@ -78,6 +78,8 @@ build\Release\tpc.exe --help
 
 Target files live under `targets/` and are selected automatically from the provider id.
 
+The provider id is the canonical `{target}` key. For example, the focused `FL64.exe` target is detected by `fl_studio`, so TPC loads `targets/fl_studio.json` automatically. A separate target/preset identity layer is not required.
+
 Example:
 
 ```json
