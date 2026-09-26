@@ -11,7 +11,6 @@
 namespace {
 
 constexpr unsigned int kDefaultWatchIntervalMs = 500;
-constexpr unsigned int kPresenceLineCount = 8;
 
 std::string json_escape(const std::string& value) {
     std::string result;
@@ -56,14 +55,14 @@ std::string json_escape(const std::string& value) {
     return result;
 }
 
-void clear_previous_presence() {
+void clear_previous_presence(std::size_t line_count) {
 #ifdef _WIN32
-    std::cout << "\x1b[" << kPresenceLineCount << "A";
+    std::cout << "\x1b[" << line_count << "A";
     std::cout << "\x1b[0J";
 #endif
 }
 
-void print_presence(const tpc::PresenceData& data) {
+std::size_t print_presence(const tpc::PresenceData& data) {
     std::cout << "{\n";
     std::cout << "  \"application\": \""
               << json_escape(data.application) << "\",\n";
@@ -84,6 +83,9 @@ void print_presence(const tpc::PresenceData& data) {
     std::cout << "\n  }\n";
     std::cout << "}\n";
     std::cout.flush();
+
+    // { + application + title + variables + N variable lines + } + }
+    return 6 + data.variables.size();
 }
 
 bool enable_virtual_terminal() {
@@ -141,6 +143,7 @@ int main(int argc, char* argv[]) {
 
     const bool virtual_terminal = enable_virtual_terminal();
     tpc::PresenceData previous;
+    std::size_t previous_line_count = 0;
     bool has_previous = false;
 
     while (true) {
@@ -151,10 +154,11 @@ int main(int argc, char* argv[]) {
             current.title != previous.title ||
             current.variables != previous.variables) {
             if (has_previous && virtual_terminal) {
-                clear_previous_presence();
+                clear_previous_presence(previous_line_count);
             }
 
-            print_presence(current);
+            const std::size_t current_line_count = print_presence(current);
+            previous_line_count = current_line_count;
             previous = current;
             has_previous = true;
         }
