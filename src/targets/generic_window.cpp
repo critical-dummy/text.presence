@@ -50,6 +50,10 @@ std::string utf8_from_wide(const std::wstring& value) {
 
 namespace tpc {
 
+const char* GenericWindowProvider::id() const {
+    return "generic_window";
+}
+
 bool GenericWindowProvider::matches() const {
     return true;
 }
@@ -70,7 +74,8 @@ PresenceData GenericWindowProvider::capture() const {
     data.variables["process"] = process_name;
     data.variables["window"] = window_title;
     data.variables["process_id"] = std::to_string(process_id);
-    data.variables["provider"] = "generic_window";
+    data.variables["provider"] = id();
+    data.variables["source"] = "windows";
 
     return data;
 }
