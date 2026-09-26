@@ -13,6 +13,7 @@ add_executable(tpc
     src/tpc/target_detector.cpp
     src/tpc/provider_registry.cpp
     src/tpc/tui.cpp
+    src/tpc/upc.cpp
     src/targets/generic_window.cpp
     src/targets/fl_studio.cpp
 )
