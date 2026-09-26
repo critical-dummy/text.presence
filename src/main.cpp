@@ -55,11 +55,18 @@ std::string json_escape(const std::string& value) {
     return result;
 }
 
-void clear_previous_presence() {
+void save_presence_cursor() {
 #ifdef _WIN32
-    // Clear the entire terminal instead of moving by logical lines.
-    // JSON values can be long enough to wrap onto multiple physical lines.
-    std::cout << "\x1b[2J\x1b[H";
+    std::cout << "\x1b[s";
+#endif
+}
+
+void replace_previous_presence() {
+#ifdef _WIN32
+    // Return to the beginning of the presence block, clear everything
+    // below it, then let the next report recreate the block.
+    std::cout << "\x1b[u";
+    std::cout << "\x1b[0J";
 #endif
 }
 
@@ -140,6 +147,10 @@ int main(int argc, char* argv[]) {
     }
 
     const bool virtual_terminal = enable_virtual_terminal();
+    if (virtual_terminal) {
+        save_presence_cursor();
+    }
+
     tpc::PresenceData previous;
     bool has_previous = false;
 
@@ -151,7 +162,7 @@ int main(int argc, char* argv[]) {
             current.title != previous.title ||
             current.variables != previous.variables) {
             if (has_previous && virtual_terminal) {
-                clear_previous_presence();
+                replace_previous_presence();
             }
 
             print_presence(current);
