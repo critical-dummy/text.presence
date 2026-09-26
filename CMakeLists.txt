@@ -23,3 +23,23 @@ target_include_directories(tpc PRIVATE src)
 if (WIN32)
     target_compile_definitions(tpc PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
 endif()
+
+include(CTest)
+
+if (BUILD_TESTING)
+    add_executable(tpc_upc_tests
+        tests/upc_tests.cpp
+        src/tpc/json.cpp
+        src/tpc/presence_data.cpp
+        src/tpc/target_config.cpp
+        src/tpc/upc.cpp
+    )
+
+    target_include_directories(tpc_upc_tests PRIVATE src)
+
+    if (WIN32)
+        target_compile_definitions(tpc_upc_tests PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
+    endif()
+
+    add_test(NAME tpc_upc_tests COMMAND tpc_upc_tests)
+endif()
