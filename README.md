@@ -34,7 +34,7 @@ Custom watch interval in milliseconds:
 build\\Release\\tpc.exe --watch 1000
 ```
 
-Watch mode emits newline-delimited JSON snapshots so another runtime layer can consume the stream.
+Watch mode polls the detector, but re-renders the presence block only when the detected state changes. The previous block is cleared before the new report is generated.
 
 ## Build
 
