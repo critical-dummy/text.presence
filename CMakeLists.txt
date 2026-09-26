@@ -9,7 +9,9 @@ add_executable(tpc
     src/main.cpp
     src/tpc/presence_data.cpp
     src/tpc/target_detector.cpp
+    src/tpc/provider_registry.cpp
     src/targets/generic_window.cpp
+    src/targets/fl_studio.cpp
 )
 
 target_include_directories(tpc PRIVATE src)
