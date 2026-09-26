@@ -106,7 +106,7 @@ Example:
 }
 ```
 
-`TPC_RPC.lines` is limited to six lines. `APP_RPC` is loaded into the target model but is not sent anywhere yet; connectors will consume it later.
+`TPC_RPC.lines` is limited to six lines. `APP_RPC` is loaded into the target model; UPC resolves it into a payload and the selected application connector can publish it.
 
 UPC resolves every string value inside `APP_RPC` using the same `{variable}` namespace as `TPC_RPC`. The resolved payload remains a JSON document until an `AppRpcConnector` consumes it, so connector transport is kept separate from TPC detection and configuration.
 
@@ -131,8 +131,8 @@ Build the adapter explicitly by supplying the SDK header directory and the C lib
 
 ```bat
 cmake -S . -B build -DTPC_ENABLE_DISCORD_SDK=ON ^
-  -DTPC_DISCORD_SDK_INCLUDE_DIR=C:\\path\\to\\discord-sdk\\public ^
-  -DTPC_DISCORD_SDK_LIBRARY=C:\\path\\to\\discord-sdk\\lib\\discord_partner_sdk.lib
+  -DTPC_DISCORD_SDK_INCLUDE_DIR=C:\path\to\discord-sdk\public ^
+  -DTPC_DISCORD_SDK_LIBRARY=C:\path\to\discord-sdk\lib\discord_partner_sdk.lib
 
 cmake --build build --config Release
 ```
@@ -148,10 +148,10 @@ Unknown `{variable}` placeholders are preserved instead of being silently remove
 ```bat
 cmake -S . -B build
 cmake --build build --config Release
+```
 
 Run the UPC regression test:
 
 ```bat
 ctest --test-dir build -C Release --output-on-failure
-```
 ```
