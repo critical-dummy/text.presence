@@ -48,14 +48,13 @@ def _build_payload():
     recording = transport.isRecording()
 
     song_pos = transport.getSongPos()
-    song_length = transport.getSongLength()
+    song_pos_hint = transport.getSongPosHint()
+    song_length = transport.getSongLength(1)
 
     pattern_number = patterns.patternNumber
     pattern_name = patterns.getPatternName(pattern_number)
 
-    progress = 0.0
-    if song_length:
-        progress = float(song_pos)
+    progress = float(song_pos)
 
     lines = [
         "TPC1",
@@ -67,6 +66,7 @@ def _build_payload():
         _value_line("playing", 1 if playing else 0),
         _value_line("recording", 1 if recording else 0),
         _value_line("song_pos", song_pos),
+        _value_line("song_pos_hint", song_pos_hint),
         _value_line("song_length", song_length),
         _value_line("progress", progress),
         _value_line("pattern_number", pattern_number),
