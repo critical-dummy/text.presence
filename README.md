@@ -126,17 +126,18 @@ When using `--launch upc --app discord`, `APP_RPC` must contain an `application_
 
 The Discord adapter maps `title` to the Rich Presence application name, `details` to the details line, and `state` to the state line. Current Discord Social SDK releases support customizing the displayed application name through `activity.name`.
 
-Build the adapter explicitly by supplying the SDK header directory and the C library/import library:
+Build the adapter explicitly by supplying the SDK header directory, import library, and runtime DLL:
 
 ```bat
 cmake -S . -B build -DTPC_ENABLE_DISCORD_SDK=ON ^
-  -DTPC_DISCORD_SDK_INCLUDE_DIR=C:\path\to\discord-sdk\public ^
-  -DTPC_DISCORD_SDK_LIBRARY=C:\path\to\discord-sdk\lib\discord_partner_sdk.lib
+  -DTPC_DISCORD_SDK_INCLUDE_DIR=C:\path\to\discord_social_sdk\include ^
+  -DTPC_DISCORD_SDK_LIBRARY=C:\path\to\discord_social_sdk\lib\release\discord_partner_sdk.lib ^
+  -DTPC_DISCORD_SDK_BIN=C:\path\to\discord_social_sdk\bin\release\discord_partner_sdk.dll
 
 cmake --build build --config Release
 ```
 
-The exact SDK package paths can vary by release, so TPC does not hard-code a vendor-specific directory layout.
+The Discord adapter is compiled as a separate C++20 target so the rest of TPC can remain C++17. TPC also copies discord_partner_sdk.dll beside tpc.exe after an SDK-enabled build. Discord's standalone C++ SDK guide requires C++20 or greater and documents the Windows discord_partner_sdk.lib link library and discord_partner_sdk.dll runtime dependency.
 
 `tpc_title` is user-customizable. It is rendered as the first line of the TPC TUI box and is also used as the Windows console title bar while that target is active.
 
