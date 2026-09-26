@@ -33,6 +33,8 @@ Current runtime includes:
 - dedicated TPC TUI with a customizable `tpc_title`
 - change-driven live updates
 - `APP_RPC` configuration loading for future connectors
+- UPC APP_RPC payload resolution with recursive variable expansion
+- application RPC connector interface
 
 ASIO is not part of the TPC communication path. The current FL Studio provider uses stable Windows-native process/window detection only.
 
@@ -104,6 +106,8 @@ Example:
 ```
 
 `TPC_RPC.lines` is limited to six lines. `APP_RPC` is loaded into the target model but is not sent anywhere yet; connectors will consume it later.
+
+UPC resolves every string value inside `APP_RPC` using the same `{variable}` namespace as `TPC_RPC`. The resolved payload remains a JSON document until an `AppRpcConnector` consumes it, so connector transport is kept separate from TPC detection and configuration.
 
 `tpc_title` is user-customizable. It is rendered as the first line of the TPC TUI box and is also used as the Windows console title bar while that target is active.
 
