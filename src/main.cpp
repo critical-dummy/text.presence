@@ -10,6 +10,9 @@
 
 namespace {
 
+constexpr unsigned int kDefaultWatchIntervalMs = 500;
+constexpr unsigned int kPresenceLineCount = 8;
+
 std::string utf8_from_wide(const std::wstring& value) {
     if (value.empty()) return {};
 
@@ -105,6 +108,15 @@ tpc::PresenceData capture_foreground() {
     return data;
 }
 
+void clear_previous_presence() {
+#ifdef _WIN32
+    // The presence block is always 8 lines tall. In watch mode the cursor
+    // sits on the line immediately after that block.
+    std::cout << "\x1b[" << kPresenceLineCount << "A";
+    std::cout << "\x1b[0J";
+#endif
+}
+
 void print_presence(const tpc::PresenceData& data) {
     std::cout << "{\n";
     std::cout << "  \"application\": \""
@@ -120,6 +132,26 @@ void print_presence(const tpc::PresenceData& data) {
               << json_escape(data.variables.at("process_id")) << "\"\n";
     std::cout << "  }\n";
     std::cout << "}\n";
+    std::cout.flush();
+}
+
+bool enable_virtual_terminal() {
+#ifdef _WIN32
+    HANDLE output = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (output == INVALID_HANDLE_VALUE || output == nullptr) {
+        return false;
+    }
+
+    DWORD mode = 0;
+    if (!GetConsoleMode(output, &mode)) {
+        return false;
+    }
+
+    mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    return SetConsoleMode(output, mode) != FALSE;
+#else
+    return false;
+#endif
 }
 
 } // namespace
@@ -131,7 +163,7 @@ int main(int argc, char* argv[]) {
 #endif
 
     bool watch = false;
-    unsigned int interval_ms = 500;
+    unsigned int interval_ms = kDefaultWatchIntervalMs;
 
     if (argc >= 2 && std::string(argv[1]) == "--watch") {
         watch = true;
@@ -140,22 +172,41 @@ int main(int argc, char* argv[]) {
     if (argc >= 3) {
         try {
             interval_ms = static_cast<unsigned int>(std::stoul(argv[2]));
-            if (interval_ms == 0) interval_ms = 500;
+            if (interval_ms == 0) {
+                interval_ms = kDefaultWatchIntervalMs;
+            }
         } catch (...) {
             std::cerr << "Invalid interval: " << argv[2] << "\n";
             return 2;
         }
     }
 
-    do {
+    if (!watch) {
         print_presence(capture_foreground());
+        return 0;
+    }
 
-        if (!watch) {
-            break;
+    const bool virtual_terminal = enable_virtual_terminal();
+    tpc::PresenceData previous;
+    bool has_previous = false;
+
+    while (true) {
+        const tpc::PresenceData current = capture_foreground();
+
+        if (!has_previous || current.application != previous.application ||
+            current.title != previous.title ||
+            current.variables != previous.variables) {
+            if (has_previous && virtual_terminal) {
+                clear_previous_presence();
+            }
+
+            print_presence(current);
+            previous = current;
+            has_previous = true;
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(interval_ms));
-    } while (true);
-
-    return 0;
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(interval_ms)
+        );
+    }
 }
