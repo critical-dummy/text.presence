@@ -119,7 +119,7 @@ tpc::TargetConfig load_for_provider(
     const tpc::PresenceData& data
 ) {
     const std::string path = override_path.empty()
-        ? ("targets/" + std::string(provider.id()) + ".json")
+        ? ("targets/" + std::string(provider.preset()) + ".json")
         : override_path;
 
     tpc::TargetConfig config;
@@ -224,6 +224,7 @@ int main(int argc, char* argv[]) {
     tpc::PresenceData previous;
     bool has_previous = false;
     std::string previous_provider;
+    std::string previous_preset;
 
     while (!g_stop_requested.load()) {
         const tpc::TargetProvider& provider = registry.detect();
@@ -232,6 +233,7 @@ int main(int argc, char* argv[]) {
         const bool changed =
             !has_previous ||
             provider.id() != previous_provider ||
+            provider.preset() != previous_preset ||
             current.application != previous.application ||
             current.title != previous.title ||
             current.variables != previous.variables;
@@ -244,6 +246,7 @@ int main(int argc, char* argv[]) {
 
             previous = current;
             previous_provider = provider.id();
+            previous_preset = provider.preset();
             has_previous = true;
         }
 
