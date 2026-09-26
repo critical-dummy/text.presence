@@ -1,8 +1,5 @@
 #include "upc.hpp"
 
-#include <iomanip>
-#include <sstream>
-
 namespace {
 
 std::string json_escape(const std::string& value) {
@@ -64,11 +61,11 @@ std::string serialize_resolved(
         return value.string_value();
 
     case tpc::JsonValue::Type::String:
-        return """ +
+        return "\"" +
             json_escape(
                 tpc::expand_variables(value.string_value(), data)
             ) +
-            """;
+            "\"";
 
     case tpc::JsonValue::Type::Array: {
         std::string result = "[";
@@ -100,9 +97,9 @@ std::string serialize_resolved(
 
             first = false;
 
-            result += """;
+            result += "\"";
             result += json_escape(key);
-            result += "":";
+            result += "\":";
             result += serialize_resolved(item, data);
         }
 
