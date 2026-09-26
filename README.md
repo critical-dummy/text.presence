@@ -118,4 +118,10 @@ Unknown `{variable}` placeholders are preserved instead of being silently remove
 ```bat
 cmake -S . -B build
 cmake --build build --config Release
+
+Run the UPC regression test:
+
+```bat
+ctest --test-dir build -C Release --output-on-failure
+```
 ```
