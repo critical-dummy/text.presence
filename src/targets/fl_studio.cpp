@@ -54,6 +54,14 @@ const char* FlStudioProvider::id() const {
     return "fl_studio";
 }
 
+const char* FlStudioProvider::target() const {
+    return "fl";
+}
+
+const char* FlStudioProvider::preset() const {
+    return "fl_studio";
+}
+
 bool FlStudioProvider::matches() const {
     const std::wstring process =
         TargetDetector::foreground_process_name();
@@ -84,6 +92,8 @@ PresenceData FlStudioProvider::capture() const {
     data.variables["window"] = window_title;
     data.variables["process_id"] = std::to_string(process_id);
     data.variables["provider"] = id();
+    data.variables["target"] = target();
+    data.variables["preset"] = preset();
     data.variables["source"] = "windows";
 
     return data;
