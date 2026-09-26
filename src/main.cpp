@@ -1,5 +1,6 @@
 #include <windows.h>
 
+#include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <string>
@@ -264,11 +265,7 @@ int main(int argc, char* argv[]) {
         if (!has_previous || current.application != previous.application ||
             current.title != previous.title ||
             current.variables != previous.variables) {
-            if (has_previous) {
-                print_watch_presence(current);
-            } else {
-                print_watch_presence(current);
-            }
+            print_watch_presence(current);
             previous = current;
             has_previous = true;
         }
