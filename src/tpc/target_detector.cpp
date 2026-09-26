@@ -27,15 +27,63 @@ bool TargetDetector::process_exists(const std::wstring& process_name) {
     return found;
 }
 
+unsigned long TargetDetector::foreground_process_id() {
+    const HWND hwnd = GetForegroundWindow();
+    if (!hwnd) return 0;
+
+    DWORD process_id = 0;
+    GetWindowThreadProcessId(hwnd, &process_id);
+    return static_cast<unsigned long>(process_id);
+}
+
+std::wstring TargetDetector::foreground_process_name() {
+    const DWORD process_id = static_cast<DWORD>(foreground_process_id());
+    if (process_id == 0) return {};
+
+    HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, process_id);
+    if (!process) return {};
+
+    std::wstring path(32768, L'\\0');
+    DWORD path_size = static_cast<DWORD>(path.size());
+
+    const BOOL ok = QueryFullProcessImageNameW(
+        process,
+        0,
+        path.data(),
+        &path_size
+    );
+
+    CloseHandle(process);
+
+    if (!ok || path_size == 0) return {};
+
+    path.resize(path_size);
+
+    const std::wstring::size_type separator = path.find_last_of(L"\\/");
+    if (separator != std::wstring::npos) {
+        return path.substr(separator + 1);
+    }
+
+    return path;
+}
+
 std::wstring TargetDetector::foreground_window_title() {
-    HWND hwnd = GetForegroundWindow();
+    const HWND hwnd = GetForegroundWindow();
     if (!hwnd) return {};
 
-    int length = GetWindowTextLengthW(hwnd);
+    const int length = GetWindowTextLengthW(hwnd);
     if (length <= 0) return {};
 
-    std::wstring title(static_cast<size_t>(length), L'\0');
-    GetWindowTextW(hwnd, title.data(), length + 1);
+    std::wstring title(static_cast<size_t>(length) + 1, L'\\0');
+    const int copied = GetWindowTextW(
+        hwnd,
+        title.data(),
+        static_cast<int>(title.size())
+    );
+
+    if (copied <= 0) return {};
+
+    title.resize(static_cast<size_t>(copied));
     return title;
 }
 
@@ -43,8 +91,22 @@ std::wstring TargetDetector::foreground_window_title() {
 #else
 
 namespace tpc {
-bool TargetDetector::process_exists(const std::wstring&) { return false; }
-std::wstring TargetDetector::foreground_window_title() { return {}; }
+
+bool TargetDetector::process_exists(const std::wstring&) {
+    return false;
 }
 
+unsigned long TargetDetector::foreground_process_id() {
+    return 0;
+}
+
+std::wstring TargetDetector::foreground_process_name() {
+    return {};
+}
+
+std::wstring TargetDetector::foreground_window_title() {
+    return {};
+}
+
+} // namespace tpc
 #endif
