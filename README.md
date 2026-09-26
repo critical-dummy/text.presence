@@ -30,7 +30,7 @@ Current runtime includes:
 - normalized `PresenceData`
 - target JSON loading
 - `{variable}` expansion
-- dedicated TPC TUI
+- dedicated TPC TUI with a customizable `tpc_title`
 - change-driven live updates
 - `APP_RPC` configuration loading for future connectors
 
@@ -105,7 +105,7 @@ Example:
 
 `TPC_RPC.lines` is limited to six lines. `APP_RPC` is loaded into the target model but is not sent anywhere yet; connectors will consume it later.
 
-`tpc_title` is used for both the TPC TUI heading and the Windows console title bar while that target is active.
+`tpc_title` is user-customizable. It is rendered as the first line of the TPC TUI box and is also used as the Windows console title bar while that target is active.
 
 Unknown `{variable}` placeholders are preserved instead of being silently removed.
 
