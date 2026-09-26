@@ -119,13 +119,12 @@ When using `--launch upc --app discord`, `APP_RPC` must contain an `application_
 ```json
 "APP_RPC": {
   "application_id": "YOUR_DISCORD_APPLICATION_ID",
-  "title": "You're using FL Studio",
   "details": "{window}",
   "state": "{provider}"
 }
 ```
 
-The Discord adapter maps `title` to the activity name, `details` to Discord's details line, and `state` to Discord's state line.
+The Discord adapter uses `details` and `state` for the two customizable Rich Presence lines. The activity name shown on Discord comes from the application's name in the Discord Developer Portal; the Social SDK does not let TPC override that field.
 
 Build the adapter explicitly by supplying the SDK header directory and the C library/import library:
 
