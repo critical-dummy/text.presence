@@ -54,14 +54,6 @@ const char* GenericWindowProvider::id() const {
     return "generic_window";
 }
 
-const char* GenericWindowProvider::target() const {
-    return "window";
-}
-
-const char* GenericWindowProvider::preset() const {
-    return "generic_window";
-}
-
 bool GenericWindowProvider::matches() const {
     return true;
 }
@@ -83,8 +75,6 @@ PresenceData GenericWindowProvider::capture() const {
     data.variables["window"] = window_title;
     data.variables["process_id"] = std::to_string(process_id);
     data.variables["provider"] = id();
-    data.variables["target"] = target();
-    data.variables["preset"] = preset();
     data.variables["source"] = "windows";
 
     return data;
