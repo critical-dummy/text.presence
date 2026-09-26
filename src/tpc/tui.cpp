@@ -278,7 +278,6 @@ void Tui::render(
         );
     }
 
-    const std::wstring heading = L" TPC";
     const std::wstring title = wide_from_utf8(
         config.tpc_title.empty()
             ? "Text Presence"
@@ -335,7 +334,6 @@ void Tui::render(
 
     short row = 0;
 
-    write_line(row++, heading, screen_width);
     write_line(row++, border, screen_width);
     write_line(row++, boxed(title), screen_width);
 
