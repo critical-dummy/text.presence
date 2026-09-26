@@ -1,6 +1,5 @@
 #include <windows.h>
 
-#include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <string>
@@ -85,7 +84,7 @@ bool save_presence_cursor() {
 #endif
 }
 
-void clear_presence_line() {
+void replace_previous_presence() {
 #ifdef _WIN32
     if (!g_presence_origin_valid ||
         g_console_output == INVALID_HANDLE_VALUE) {
@@ -98,12 +97,26 @@ void clear_presence_line() {
         return;
     }
 
+    const DWORD buffer_width = info.dwSize.X;
+    const DWORD buffer_height = info.dwSize.Y;
+
+    const DWORD origin_index =
+        static_cast<DWORD>(g_presence_origin.Y) * buffer_width +
+        static_cast<DWORD>(g_presence_origin.X);
+
+    const DWORD buffer_size = buffer_width * buffer_height;
+
+    if (origin_index >= buffer_size) {
+        return;
+    }
+
+    const DWORD clear_count = buffer_size - origin_index;
     DWORD written = 0;
 
     FillConsoleOutputCharacterW(
         g_console_output,
         L' ',
-        static_cast<DWORD>(info.dwSize.X),
+        clear_count,
         g_presence_origin,
         &written
     );
@@ -111,75 +124,12 @@ void clear_presence_line() {
     FillConsoleOutputAttribute(
         g_console_output,
         info.wAttributes,
-        static_cast<DWORD>(info.dwSize.X),
+        clear_count,
         g_presence_origin,
         &written
     );
 
     SetConsoleCursorPosition(g_console_output, g_presence_origin);
-#endif
-}
-
-std::string compact_watch_status(const tpc::PresenceData& data) {
-    const auto get = [&data](const char* key) -> std::string {
-        const auto it = data.variables.find(key);
-        return it == data.variables.end() ? std::string{} : it->second;
-    };
-
-    std::string status =
-        "[TPC] " + data.application +
-        " | provider=" + get("provider") +
-        " | process=" + get("process") +
-        " | title=" + data.title;
-
-    return status;
-}
-
-void print_watch_presence(const tpc::PresenceData& data) {
-#ifdef _WIN32
-    if (!g_presence_origin_valid ||
-        g_console_output == INVALID_HANDLE_VALUE) {
-        return;
-    }
-
-    CONSOLE_SCREEN_BUFFER_INFO info{};
-
-    if (!GetConsoleScreenBufferInfo(g_console_output, &info)) {
-        return;
-    }
-
-    clear_presence_line();
-
-    const std::string status = compact_watch_status(data);
-
-    COORD origin = g_presence_origin;
-    const DWORD max_width =
-        info.dwSize.X > 0 ? static_cast<DWORD>(info.dwSize.X - 1) : 0;
-
-    const DWORD write_count =
-        static_cast<DWORD>(
-            std::min<std::size_t>(status.size(), max_width)
-        );
-
-    if (write_count > 0) {
-        DWORD written = 0;
-        WriteConsoleOutputCharacterA(
-            g_console_output,
-            status.data(),
-            write_count,
-            origin,
-            &written
-        );
-
-        COORD after_status = origin;
-        after_status.X = static_cast<SHORT>(
-            origin.X + static_cast<SHORT>(write_count)
-        );
-
-        SetConsoleCursorPosition(g_console_output, after_status);
-    } else {
-        SetConsoleCursorPosition(g_console_output, origin);
-    }
 #endif
 }
 
@@ -260,11 +210,6 @@ int main(int argc, char* argv[]) {
     }
 
     enable_virtual_terminal();
-
-    // Keep the watch renderer on its own line, below the shell prompt.
-    std::cout << "\n";
-    std::cout.flush();
-
     save_presence_cursor();
 
     tpc::PresenceData previous;
@@ -277,7 +222,11 @@ int main(int argc, char* argv[]) {
         if (!has_previous || current.application != previous.application ||
             current.title != previous.title ||
             current.variables != previous.variables) {
-            print_watch_presence(current);
+            if (has_previous) {
+                replace_previous_presence();
+            }
+
+            print_presence(current);
             previous = current;
             has_previous = true;
         }
