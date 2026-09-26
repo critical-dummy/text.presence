@@ -170,9 +170,16 @@ void print_watch_presence(const tpc::PresenceData& data) {
             origin,
             &written
         );
-    }
 
-    SetConsoleCursorPosition(g_console_output, origin);
+        COORD after_status = origin;
+        after_status.X = static_cast<SHORT>(
+            origin.X + static_cast<SHORT>(write_count)
+        );
+
+        SetConsoleCursorPosition(g_console_output, after_status);
+    } else {
+        SetConsoleCursorPosition(g_console_output, origin);
+    }
 #endif
 }
 
@@ -253,6 +260,11 @@ int main(int argc, char* argv[]) {
     }
 
     enable_virtual_terminal();
+
+    // Keep the watch renderer on its own line, below the shell prompt.
+    std::cout << "\n";
+    std::cout.flush();
+
     save_presence_cursor();
 
     tpc::PresenceData previous;
