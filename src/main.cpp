@@ -6,44 +6,12 @@
 #include <thread>
 
 #include "tpc/presence_data.hpp"
-#include "tpc/target_detector.hpp"
+#include "tpc/provider_registry.hpp"
 
 namespace {
 
 constexpr unsigned int kDefaultWatchIntervalMs = 500;
 constexpr unsigned int kPresenceLineCount = 8;
-
-std::string utf8_from_wide(const std::wstring& value) {
-    if (value.empty()) return {};
-
-    const int size = WideCharToMultiByte(
-        CP_UTF8,
-        0,
-        value.data(),
-        static_cast<int>(value.size()),
-        nullptr,
-        0,
-        nullptr,
-        nullptr
-    );
-
-    if (size <= 0) return {};
-
-    std::string result(static_cast<size_t>(size), '\0');
-
-    WideCharToMultiByte(
-        CP_UTF8,
-        0,
-        value.data(),
-        static_cast<int>(value.size()),
-        result.data(),
-        size,
-        nullptr,
-        nullptr
-    );
-
-    return result;
-}
 
 std::string json_escape(const std::string& value) {
     std::string result;
@@ -88,30 +56,8 @@ std::string json_escape(const std::string& value) {
     return result;
 }
 
-tpc::PresenceData capture_foreground() {
-    const unsigned long process_id =
-        tpc::TargetDetector::foreground_process_id();
-
-    const std::string process_name =
-        utf8_from_wide(tpc::TargetDetector::foreground_process_name());
-
-    const std::string window_title =
-        utf8_from_wide(tpc::TargetDetector::foreground_window_title());
-
-    tpc::PresenceData data;
-    data.application = process_name.empty() ? "unknown" : process_name;
-    data.title = window_title.empty() ? process_name : window_title;
-    data.variables["process"] = process_name;
-    data.variables["window"] = window_title;
-    data.variables["process_id"] = std::to_string(process_id);
-
-    return data;
-}
-
 void clear_previous_presence() {
 #ifdef _WIN32
-    // The presence block is always 8 lines tall. In watch mode the cursor
-    // sits on the line immediately after that block.
     std::cout << "\x1b[" << kPresenceLineCount << "A";
     std::cout << "\x1b[0J";
 #endif
@@ -124,13 +70,18 @@ void print_presence(const tpc::PresenceData& data) {
     std::cout << "  \"title\": \""
               << json_escape(data.title) << "\",\n";
     std::cout << "  \"variables\": {\n";
-    std::cout << "    \"process\": \""
-              << json_escape(data.variables.at("process")) << "\",\n";
-    std::cout << "    \"window\": \""
-              << json_escape(data.variables.at("window")) << "\",\n";
-    std::cout << "    \"process_id\": \""
-              << json_escape(data.variables.at("process_id")) << "\"\n";
-    std::cout << "  }\n";
+
+    bool first = true;
+    for (const auto& [key, value] : data.variables) {
+        if (!first) {
+            std::cout << ",\n";
+        }
+        first = false;
+        std::cout << "    \"" << json_escape(key) << "\": \""
+                  << json_escape(value) << "\"";
+    }
+
+    std::cout << "\n  }\n";
     std::cout << "}\n";
     std::cout.flush();
 }
@@ -181,8 +132,10 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    tpc::ProviderRegistry registry;
+
     if (!watch) {
-        print_presence(capture_foreground());
+        print_presence(registry.detect().capture());
         return 0;
     }
 
@@ -191,7 +144,8 @@ int main(int argc, char* argv[]) {
     bool has_previous = false;
 
     while (true) {
-        const tpc::PresenceData current = capture_foreground();
+        const tpc::TargetProvider& provider = registry.detect();
+        const tpc::PresenceData current = provider.capture();
 
         if (!has_previous || current.application != previous.application ||
             current.title != previous.title ||
