@@ -367,9 +367,12 @@ void Tui::render(
     }
 
     if (row < screen_height) {
+        const auto provider_iterator =
+            data.variables.find("provider");
+
         const std::string target =
-            data.variables.contains("provider")
-                ? data.variables.at("provider")
+            provider_iterator != data.variables.end()
+                ? provider_iterator->second
                 : data.application;
 
         const std::wstring footer =
