@@ -39,15 +39,33 @@ if (TPC_ENABLE_DISCORD_SDK)
     endif()
 
     if (NOT EXISTS "${TPC_DISCORD_SDK_LIBRARY}")
-        message(FATAL_ERROR "TPC_DISCORD_SDK_LIBRARY must point to the Discord Social SDK library")
+        message(FATAL_ERROR "TPC_DISCORD_SDK_LIBRARY must point to discord_partner_sdk.lib")
     endif()
 
-    target_sources(tpc PRIVATE
+    set(TPC_DISCORD_SDK_BIN "" CACHE FILEPATH
+        "Discord Social SDK runtime DLL, usually discord_partner_sdk.dll")
+
+    if (NOT EXISTS "${TPC_DISCORD_SDK_BIN}")
+        message(FATAL_ERROR "TPC_DISCORD_SDK_BIN must point to discord_partner_sdk.dll")
+    endif()
+
+    add_library(tpc_discord_sdk OBJECT
         src/connectors/discord_sdk.cpp
     )
 
-    target_include_directories(tpc PRIVATE
+    target_compile_features(tpc_discord_sdk PRIVATE cxx_std_20)
+
+    target_include_directories(tpc_discord_sdk PRIVATE
+        src
         ${TPC_DISCORD_SDK_INCLUDE_DIR}
+    )
+
+    target_compile_definitions(tpc_discord_sdk PRIVATE
+        TPC_ENABLE_DISCORD_SDK
+    )
+
+    target_sources(tpc PRIVATE
+        $<TARGET_OBJECTS:tpc_discord_sdk>
     )
 
     target_link_libraries(tpc PRIVATE
@@ -56,6 +74,12 @@ if (TPC_ENABLE_DISCORD_SDK)
 
     target_compile_definitions(tpc PRIVATE
         TPC_ENABLE_DISCORD_SDK
+    )
+
+    add_custom_command(TARGET tpc POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${TPC_DISCORD_SDK_BIN}"
+        "$<TARGET_FILE_DIR:tpc>"
     )
 endif()
 
