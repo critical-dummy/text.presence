@@ -103,6 +103,8 @@ Example:
 
 `TPC_RPC.lines` is limited to six lines. `APP_RPC` is loaded into the target model but is not sent anywhere yet; connectors will consume it later.
 
+`tpc_title` is used for both the TPC TUI heading and the Windows console title bar while that target is active.
+
 Unknown `{variable}` placeholders are preserved instead of being silently removed.
 
 ## Build
