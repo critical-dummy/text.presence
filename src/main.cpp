@@ -55,10 +55,11 @@ std::string json_escape(const std::string& value) {
     return result;
 }
 
-void clear_previous_presence(std::size_t line_count) {
+void clear_previous_presence() {
 #ifdef _WIN32
-    std::cout << "\x1b[" << line_count << "A";
-    std::cout << "\x1b[0J";
+    // Clear the entire terminal instead of moving by logical lines.
+    // JSON values can be long enough to wrap onto multiple physical lines.
+    std::cout << "\x1b[2J\x1b[H";
 #endif
 }
 
@@ -83,9 +84,7 @@ std::size_t print_presence(const tpc::PresenceData& data) {
     std::cout << "\n  }\n";
     std::cout << "}\n";
     std::cout.flush();
-
-    // { + application + title + variables + N variable lines + } + }
-    return 6 + data.variables.size();
+}
 }
 
 bool enable_virtual_terminal() {
@@ -143,7 +142,6 @@ int main(int argc, char* argv[]) {
 
     const bool virtual_terminal = enable_virtual_terminal();
     tpc::PresenceData previous;
-    std::size_t previous_line_count = 0;
     bool has_previous = false;
 
     while (true) {
@@ -154,11 +152,10 @@ int main(int argc, char* argv[]) {
             current.title != previous.title ||
             current.variables != previous.variables) {
             if (has_previous && virtual_terminal) {
-                clear_previous_presence(previous_line_count);
+                clear_previous_presence();
             }
 
-            const std::size_t current_line_count = print_presence(current);
-            previous_line_count = current_line_count;
+            print_presence(current);
             previous = current;
             has_previous = true;
         }
