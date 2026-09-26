@@ -100,7 +100,7 @@ void replace_previous_presence() {
 #endif
 }
 
-std::size_t print_presence(const tpc::PresenceData& data) {
+void print_presence(const tpc::PresenceData& data) {
     std::cout << "{\n";
     std::cout << "  \"application\": \""
               << json_escape(data.application) << "\",\n";
