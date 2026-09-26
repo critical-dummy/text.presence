@@ -24,6 +24,7 @@ public:
     virtual const char* id() const = 0;
     virtual bool publish(const std::string& payload) = 0;
     virtual void clear() = 0;
+    virtual void tick() {}
 };
 
 } // namespace tpc
