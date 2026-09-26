@@ -32,6 +32,7 @@ public:
     bool is_array() const;
     bool is_string() const;
 
+    bool boolean_value() const;
     const std::string& string_value() const;
     const std::vector<JsonValue>& array_value() const;
     const std::map<std::string, JsonValue>& object_value() const;
