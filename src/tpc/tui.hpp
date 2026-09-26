@@ -29,10 +29,12 @@ private:
         const std::wstring& text,
         short width
     );
+    void update_console_title(const std::string& title);
 
 #ifdef _WIN32
     void* original_buffer_ = nullptr;
     void* tui_buffer_ = nullptr;
+    std::wstring original_console_title_;
 #endif
 
     bool active_ = false;
