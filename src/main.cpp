@@ -125,6 +125,11 @@ void print_presence(const tpc::PresenceData& data) {
 } // namespace
 
 int main(int argc, char* argv[]) {
+#ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+#endif
+
     bool watch = false;
     unsigned int interval_ms = 500;
 
