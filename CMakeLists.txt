@@ -14,6 +14,7 @@ add_executable(tpc
     src/tpc/provider_registry.cpp
     src/tpc/tui.cpp
     src/tpc/upc.cpp
+    src/tpc/app_connector_registry.cpp
     src/targets/generic_window.cpp
     src/targets/fl_studio.cpp
 )
@@ -22,6 +23,40 @@ target_include_directories(tpc PRIVATE src)
 
 if (WIN32)
     target_compile_definitions(tpc PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
+endif()
+
+option(TPC_ENABLE_DISCORD_SDK "Build the Discord Social SDK connector" OFF)
+set(TPC_DISCORD_SDK_INCLUDE_DIR "" CACHE PATH "Directory containing discordpp.h")
+set(TPC_DISCORD_SDK_LIBRARY "" CACHE FILEPATH "Discord Social SDK C library/import library")
+
+if (TPC_ENABLE_DISCORD_SDK)
+    if (NOT WIN32)
+        message(FATAL_ERROR "TPC_ENABLE_DISCORD_SDK currently supports Windows only")
+    endif()
+
+    if (NOT EXISTS "${TPC_DISCORD_SDK_INCLUDE_DIR}/discordpp.h")
+        message(FATAL_ERROR "TPC_DISCORD_SDK_INCLUDE_DIR must contain discordpp.h")
+    endif()
+
+    if (NOT EXISTS "${TPC_DISCORD_SDK_LIBRARY}")
+        message(FATAL_ERROR "TPC_DISCORD_SDK_LIBRARY must point to the Discord Social SDK library")
+    endif()
+
+    target_sources(tpc PRIVATE
+        src/connectors/discord_sdk.cpp
+    )
+
+    target_include_directories(tpc PRIVATE
+        ${TPC_DISCORD_SDK_INCLUDE_DIR}
+    )
+
+    target_link_libraries(tpc PRIVATE
+        "${TPC_DISCORD_SDK_LIBRARY}"
+    )
+
+    target_compile_definitions(tpc PRIVATE
+        TPC_ENABLE_DISCORD_SDK
+    )
 endif()
 
 include(CTest)
