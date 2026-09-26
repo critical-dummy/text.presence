@@ -1,7 +1,9 @@
 #include <windows.h>
 
+#include <chrono>
 #include <iostream>
 #include <string>
+#include <thread>
 
 #include "tpc/presence_data.hpp"
 #include "tpc/target_detector.hpp"
@@ -83,12 +85,13 @@ std::string json_escape(const std::string& value) {
     return result;
 }
 
-} // namespace
+tpc::PresenceData capture_foreground() {
+    const unsigned long process_id =
+        tpc::TargetDetector::foreground_process_id();
 
-int main() {
-    const unsigned long process_id = tpc::TargetDetector::foreground_process_id();
     const std::string process_name =
         utf8_from_wide(tpc::TargetDetector::foreground_process_name());
+
     const std::string window_title =
         utf8_from_wide(tpc::TargetDetector::foreground_window_title());
 
@@ -99,6 +102,10 @@ int main() {
     data.variables["window"] = window_title;
     data.variables["process_id"] = std::to_string(process_id);
 
+    return data;
+}
+
+void print_presence(const tpc::PresenceData& data) {
     std::cout << "{\n";
     std::cout << "  \"application\": \""
               << json_escape(data.application) << "\",\n";
@@ -106,13 +113,44 @@ int main() {
               << json_escape(data.title) << "\",\n";
     std::cout << "  \"variables\": {\n";
     std::cout << "    \"process\": \""
-              << json_escape(data.variables["process"]) << "\",\n";
+              << json_escape(data.variables.at("process")) << "\",\n";
     std::cout << "    \"window\": \""
-              << json_escape(data.variables["window"]) << "\",\n";
+              << json_escape(data.variables.at("window")) << "\",\n";
     std::cout << "    \"process_id\": \""
-              << json_escape(data.variables["process_id"]) << "\"\n";
+              << json_escape(data.variables.at("process_id")) << "\"\n";
     std::cout << "  }\n";
     std::cout << "}\n";
+}
+
+} // namespace
+
+int main(int argc, char* argv[]) {
+    bool watch = false;
+    unsigned int interval_ms = 500;
+
+    if (argc >= 2 && std::string(argv[1]) == "--watch") {
+        watch = true;
+    }
+
+    if (argc >= 3) {
+        try {
+            interval_ms = static_cast<unsigned int>(std::stoul(argv[2]));
+            if (interval_ms == 0) interval_ms = 500;
+        } catch (...) {
+            std::cerr << "Invalid interval: " << argv[2] << "\n";
+            return 2;
+        }
+    }
+
+    do {
+        print_presence(capture_foreground());
+
+        if (!watch) {
+            break;
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(interval_ms));
+    } while (true);
 
     return 0;
 }
