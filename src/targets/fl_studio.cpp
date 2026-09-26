@@ -47,36 +47,24 @@ std::string utf8_from_wide(const std::wstring& value) {
 }
 
 std::string project_hint_from_title(const std::string& title) {
-    if (title.empty()) return {};
+    static constexpr const char marker[] = " - FL Studio ";
 
-    // Current FL Studio window titles can include the current project name.
-    // Keep this deliberately conservative: do not guess when only the
-    // application/version title is visible.
-    static constexpr const char* suffixes[] = {
-        " - FL Studio 2026",
-        " - FL Studio 2025",
-        " - FL Studio 24",
-        " - FL Studio 21"
-    };
+    const std::size_t marker_position = title.rfind(marker);
 
-    for (const char* suffix : suffixes) {
-        const std::string suffix_string(suffix);
-        if (title.size() > suffix_string.size() &&
-            title.compare(
-                title.size() - suffix_string.size(),
-                suffix_string.size(),
-                suffix_string
-            ) == 0) {
-            return title.substr(0, title.size() - suffix_string.size());
-        }
+    if (marker_position == std::string::npos || marker_position == 0) {
+        return {};
     }
 
-    return {};
+    return title.substr(0, marker_position);
 }
 
 } // namespace
 
 namespace tpc {
+
+const char* FlStudioProvider::id() const {
+    return "fl_studio";
+}
 
 bool FlStudioProvider::matches() const {
     const std::wstring process =
@@ -101,13 +89,12 @@ PresenceData FlStudioProvider::capture() const {
         utf8_from_wide(TargetDetector::foreground_window_title());
 
     PresenceData data;
-    data.application = "fl_studio";
+    data.application = id();
     data.title = window_title.empty() ? "FL Studio" : window_title;
-
     data.variables["process"] = process_name;
     data.variables["window"] = window_title;
     data.variables["process_id"] = std::to_string(process_id);
-    data.variables["provider"] = "fl_studio";
+    data.variables["provider"] = id();
     data.variables["source"] = "windows";
 
     const std::string project_hint = project_hint_from_title(window_title);
