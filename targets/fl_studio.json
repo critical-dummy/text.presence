@@ -14,6 +14,10 @@
     "application_id": "1553475535706001539",
     "title": "FL Studio",
     "details": "{window}",
-    "state": "{provider} • {process}"
+    "state": "{provider} • {process}",
+    "assets": {
+      "large_image": "fl_studio",
+      "large_text": "FL Studio"
+    }
   }
 }
