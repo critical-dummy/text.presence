@@ -14,6 +14,6 @@
     "application_id": "1553475535706001539",
     "title": "You're using {application}",
     "details": "{window}",
-    "state": "{provider}"
+    "state": "{process}"
   }
 }
