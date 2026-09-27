@@ -78,7 +78,6 @@ struct IconResourceCandidate {
     UINT height = 0;
     WORD bit_count = 0;
     DWORD image_bytes = 0;
-    bool png = false;
 };
 
 struct EnumIconContext {
@@ -180,8 +179,6 @@ BOOL CALLBACK enum_icon_groups(
             continue;
         }
 
-        context->best.group_id =
-            LOWORD(reinterpret_cast<ULONG_PTR>(name));
         context->best.icon_id = entry.id;
         context->best.width = width;
         context->best.height = height;
