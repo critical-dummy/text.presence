@@ -202,7 +202,7 @@ bool DiscordSdkConnector::publish(const std::string& payload) {
                         << result.ToString()
                         << " (code="
                         << result.ErrorCode()
-                        << ")\\n";
+                        << ")\n";
 
                     const std::string response = result.ResponseBody();
 
@@ -210,7 +210,7 @@ bool DiscordSdkConnector::publish(const std::string& payload) {
                         std::cerr
                             << "Discord response: "
                             << response
-                            << "\\n";
+                            << "\n";
                     }
                 }
             }
