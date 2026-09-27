@@ -24,6 +24,21 @@ namespace {
 constexpr wchar_t kIconServerHost[] =
     L"icon-server.presence-client.workers.dev";
 
+bool is_png_resource(const void* data, DWORD size) {
+    static constexpr BYTE signature[] = {
+        0x89, 0x50, 0x4e, 0x47,
+        0x0d, 0x0a, 0x1a, 0x0a
+    };
+
+    return data != nullptr &&
+           size >= sizeof(signature) &&
+           std::memcmp(
+               data,
+               signature,
+               sizeof(signature)
+           ) == 0;
+}
+
 bool find_png_encoder(CLSID& clsid) {
     using namespace Gdiplus;
 
@@ -262,6 +277,28 @@ bool extract_png(
     if (icon_bytes == nullptr) {
         FreeLibrary(module);
         return false;
+    }
+
+    if (is_png_resource(icon_bytes, icon_size)) {
+        if (icon_size > 1024 * 1024) {
+            std::cerr
+                << "Icon server: embedded PNG icon exceeds upload limit\n";
+            FreeLibrary(module);
+            return false;
+        }
+
+        output.assign(
+            static_cast<const std::uint8_t*>(icon_bytes),
+            static_cast<const std::uint8_t*>(icon_bytes) + icon_size
+        );
+
+        std::cerr
+            << "Icon server: using embedded PNG bytes="
+            << icon_size
+            << "\n";
+
+        FreeLibrary(module);
+        return true;
     }
 
     HICON icon = CreateIconFromResourceEx(
