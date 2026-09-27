@@ -186,6 +186,25 @@ bool extract_png(
         return false;
     }
 
+    const HRESULT com_result =
+        CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+
+    if (FAILED(com_result) &&
+        com_result != RPC_E_CHANGED_MODE) {
+        return false;
+    }
+
+    struct ComGuard {
+        bool active;
+        ~ComGuard() {
+            if (active) {
+                CoUninitialize();
+            }
+        }
+    } com_guard{
+        com_result == S_OK || com_result == S_FALSE
+    };
+
     HMODULE module = LoadLibraryExW(
         executable_path.c_str(),
         nullptr,
