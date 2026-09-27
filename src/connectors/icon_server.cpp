@@ -12,7 +12,8 @@
 #endif
 
 #include <cstdint>
-#include <iostream>
+#include <cstring>
+#include <iostream
 #include <string>
 #include <vector>
 
