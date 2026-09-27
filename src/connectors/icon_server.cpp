@@ -579,9 +579,7 @@ bool IconServerClient::sync(
 
     if (!extract_png(executable_path, png)) {
         std::cerr
-            << "Icon server: icon extraction failed: "
-            << std::string(executable_path.begin(), executable_path.end())
-            << "\n";
+            << "Icon server: icon extraction failed\n";
         return false;
     }
 
