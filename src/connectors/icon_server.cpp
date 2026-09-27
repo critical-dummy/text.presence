@@ -56,6 +56,127 @@ bool find_png_encoder(CLSID& clsid) {
     return false;
 }
 
+struct IconResourceCandidate {
+    WORD group_id = 0;
+    WORD icon_id = 0;
+    UINT width = 0;
+    UINT height = 0;
+    WORD bit_count = 0;
+    DWORD image_bytes = 0;
+};
+
+struct EnumIconContext {
+    HMODULE module = nullptr;
+    IconResourceCandidate best;
+    bool found = false;
+};
+
+#pragma pack(push, 1)
+struct GroupIconDirectory {
+    WORD reserved;
+    WORD type;
+    WORD count;
+};
+
+struct GroupIconEntry {
+    BYTE width;
+    BYTE height;
+    BYTE color_count;
+    BYTE reserved;
+    WORD planes;
+    WORD bit_count;
+    DWORD bytes_in_res;
+    WORD id;
+};
+#pragma pack(pop)
+
+BOOL CALLBACK enum_icon_groups(
+    HMODULE module,
+    LPCWSTR,
+    LPWSTR name,
+    LONG_PTR parameter
+) {
+    auto* context =
+        reinterpret_cast<EnumIconContext*>(parameter);
+
+    const HRSRC group_resource =
+        FindResourceW(
+            module,
+            name,
+            RT_GROUP_ICON
+        );
+
+    if (group_resource == nullptr) {
+        return TRUE;
+    }
+
+    const HGLOBAL loaded =
+        LoadResource(module, group_resource);
+
+    if (loaded == nullptr) {
+        return TRUE;
+    }
+
+    const auto* directory =
+        static_cast<const GroupIconDirectory*>(
+            LockResource(loaded)
+        );
+
+    if (directory == nullptr ||
+        directory->type != 1 ||
+        directory->count == 0) {
+        return TRUE;
+    }
+
+    const auto* entries =
+        reinterpret_cast<const GroupIconEntry*>(
+            reinterpret_cast<const BYTE*>(directory) +
+            sizeof(GroupIconDirectory)
+        );
+
+    for (WORD i = 0; i < directory->count; ++i) {
+        const auto& entry = entries[i];
+
+        const UINT width =
+            entry.width == 0 ? 256u : entry.width;
+
+        const UINT height =
+            entry.height == 0 ? 256u : entry.height;
+
+        const std::uint64_t area =
+            static_cast<std::uint64_t>(width) *
+            static_cast<std::uint64_t>(height);
+
+        const std::uint64_t best_area =
+            static_cast<std::uint64_t>(context->best.width) *
+            static_cast<std::uint64_t>(context->best.height);
+
+        const bool better =
+            !context->found ||
+            area > best_area ||
+            (area == best_area &&
+             entry.bit_count > context->best.bit_count) ||
+            (area == best_area &&
+             entry.bit_count == context->best.bit_count &&
+             entry.bytes_in_res > context->best.image_bytes);
+
+        if (!better) {
+            continue;
+        }
+
+        context->best.group_id =
+            LOWORD(reinterpret_cast<ULONG_PTR>(name));
+        context->best.icon_id = entry.id;
+        context->best.width = width;
+        context->best.height = height;
+        context->best.bit_count = entry.bit_count;
+        context->best.image_bytes = entry.bytes_in_res;
+        context->found = true;
+    }
+
+    return TRUE;
+}
+
 bool extract_png(
     const std::wstring& executable_path,
     std::vector<std::uint8_t>& output
@@ -64,48 +185,78 @@ bool extract_png(
         return false;
     }
 
-    IShellItem* item = nullptr;
+    HMODULE module = LoadLibraryExW(
+        executable_path.c_str(),
+        nullptr,
+        LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE
+    );
 
-    const HRESULT item_result =
-        SHCreateItemFromParsingName(
-            executable_path.c_str(),
-            nullptr,
-            IID_PPV_ARGS(&item)
-        );
-
-    if (FAILED(item_result) || item == nullptr) {
+    if (module == nullptr) {
         return false;
     }
 
-    IShellItemImageFactory* image_factory = nullptr;
+    EnumIconContext context;
+    context.module = module;
 
-    const HRESULT factory_result =
-        item->QueryInterface(
-            IID_PPV_ARGS(&image_factory)
-        );
+    EnumResourceNamesW(
+        module,
+        RT_GROUP_ICON,
+        enum_icon_groups,
+        reinterpret_cast<LONG_PTR>(&context)
+    );
 
-    item->Release();
-
-    if (FAILED(factory_result) || image_factory == nullptr) {
+    if (!context.found) {
+        FreeLibrary(module);
         return false;
     }
 
-    HBITMAP bitmap_handle = nullptr;
-
-    SIZE requested_size{};
-    requested_size.cx = 256;
-    requested_size.cy = 256;
-
-    const HRESULT image_result =
-        image_factory->GetImage(
-            requested_size,
-            SIIGBF_ICONONLY | SIIGBF_BIGGERSIZEOK,
-            &bitmap_handle
+    const HRSRC icon_resource =
+        FindResourceW(
+            module,
+            MAKEINTRESOURCEW(context.best.icon_id),
+            RT_ICON
         );
 
-    image_factory->Release();
+    if (icon_resource == nullptr) {
+        FreeLibrary(module);
+        return false;
+    }
 
-    if (FAILED(image_result) || bitmap_handle == nullptr) {
+    const DWORD icon_size =
+        SizeofResource(module, icon_resource);
+
+    if (icon_size == 0) {
+        FreeLibrary(module);
+        return false;
+    }
+
+    const HGLOBAL icon_data =
+        LoadResource(module, icon_resource);
+
+    const void* icon_bytes =
+        icon_data != nullptr
+            ? LockResource(icon_data)
+            : nullptr;
+
+    if (icon_bytes == nullptr) {
+        FreeLibrary(module);
+        return false;
+    }
+
+    HICON icon = CreateIconFromResourceEx(
+        static_cast<PBYTE>(
+            const_cast<void*>(icon_bytes)
+        ),
+        icon_size,
+        TRUE,
+        0x00030000,
+        static_cast<int>(context.best.width),
+        static_cast<int>(context.best.height),
+        LR_DEFAULTCOLOR
+    );
+
+    if (icon == nullptr) {
+        FreeLibrary(module);
         return false;
     }
 
@@ -117,14 +268,15 @@ bool extract_png(
             &startup_input,
             nullptr
         ) != Gdiplus::Ok) {
-        DeleteObject(bitmap_handle);
+        DestroyIcon(icon);
+        FreeLibrary(module);
         return false;
     }
 
     bool success = false;
 
     do {
-        Gdiplus::Bitmap bitmap(bitmap_handle, nullptr);
+        Gdiplus::Bitmap bitmap(icon);
 
         if (bitmap.GetLastStatus() != Gdiplus::Ok) {
             break;
@@ -186,7 +338,8 @@ bool extract_png(
     } while (false);
 
     Gdiplus::GdiplusShutdown(token);
-    DeleteObject(bitmap_handle);
+    DestroyIcon(icon);
+    FreeLibrary(module);
 
     return success && !output.empty();
 }
