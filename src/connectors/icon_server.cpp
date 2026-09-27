@@ -13,6 +13,7 @@
 #endif
 
 #include <cstdint>
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -182,6 +183,7 @@ bool extract_png(
     std::vector<std::uint8_t>& output
 ) {
     if (executable_path.empty()) {
+        std::cerr << "Icon server: executable path is empty\n";
         return false;
     }
 
@@ -523,8 +525,17 @@ bool IconServerClient::sync(
     std::vector<std::uint8_t> png;
 
     if (!extract_png(executable_path, png)) {
+        std::cerr
+            << "Icon server: icon extraction failed: "
+            << std::string(executable_path.begin(), executable_path.end())
+            << "\n";
         return false;
     }
+
+    std::cerr
+        << "Icon server: extracted PNG bytes="
+        << png.size()
+        << "\n";
 
     std::wstring path = L"/api/icons";
 
@@ -546,6 +557,10 @@ bool IconServerClient::sync(
             response,
             status_code
         )) {
+        std::cerr
+            << "Icon server: upload failed, HTTP status="
+            << status_code
+            << "\n";
         return false;
     }
 
@@ -569,6 +584,13 @@ bool IconServerClient::sync(
         current_executable_path_ = executable_path;
         current_id_ = id;
         current_url_ = uploaded_url;
+
+        std::cerr
+            << "Icon server: uploaded "
+            << id
+            << " -> "
+            << uploaded_url
+            << "\n";
 
         url = current_url_;
         return true;
