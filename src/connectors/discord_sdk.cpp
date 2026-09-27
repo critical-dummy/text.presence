@@ -108,7 +108,7 @@ bool DiscordSdkConnector::publish(const std::string& payload) {
         }
 
         discordpp::Activity activity;
-        activity.SetType(discordpp::ActivityTypes::Playing);
+        activity.SetType(discordpp::ActivityTypes::Watching);
 
         std::string value;
 
