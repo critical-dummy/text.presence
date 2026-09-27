@@ -78,6 +78,7 @@ if (TPC_ENABLE_DISCORD_SDK)
         shell32
         shlwapi
         gdiplus
+        ole32
         winhttp
     )
 
