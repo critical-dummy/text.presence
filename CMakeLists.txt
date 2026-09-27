@@ -63,6 +63,10 @@ if (TPC_ENABLE_DISCORD_SDK)
 
     target_compile_definitions(tpc_discord_sdk PRIVATE
         TPC_ENABLE_DISCORD_SDK
+        UNICODE
+        _UNICODE
+        WIN32_LEAN_AND_MEAN
+        NOMINMAX
     )
 
     target_sources(tpc PRIVATE
