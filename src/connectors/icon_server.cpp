@@ -4,11 +4,10 @@
 
 #ifdef _WIN32
 #include <windows.h>
-#include <gdiplus.h>
-#include <shellapi.h>
-#include <shlwapi.h>
+#include <objidl.h>
 #include <shobjidl.h>
-#include <objbase.h>
+#include <gdiplus.h>
+#include <shlwapi.h>
 #include <winhttp.h>
 #endif
 
