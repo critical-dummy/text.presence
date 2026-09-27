@@ -34,30 +34,31 @@ if (TPC_ENABLE_DISCORD_SDK)
         message(FATAL_ERROR "TPC_ENABLE_DISCORD_SDK currently supports Windows only")
     endif()
 
-    if (NOT EXISTS "${TPC_DISCORD_SDK_INCLUDE_DIR}/discordpp.h")
+    if (NOT EXISTS "\${TPC_DISCORD_SDK_INCLUDE_DIR}/discordpp.h")
         message(FATAL_ERROR "TPC_DISCORD_SDK_INCLUDE_DIR must contain discordpp.h")
     endif()
 
-    if (NOT EXISTS "${TPC_DISCORD_SDK_LIBRARY}")
+    if (NOT EXISTS "\${TPC_DISCORD_SDK_LIBRARY}")
         message(FATAL_ERROR "TPC_DISCORD_SDK_LIBRARY must point to discord_partner_sdk.lib")
     endif()
 
     set(TPC_DISCORD_SDK_BIN "" CACHE FILEPATH
         "Discord Social SDK runtime DLL, usually discord_partner_sdk.dll")
 
-    if (NOT EXISTS "${TPC_DISCORD_SDK_BIN}")
+    if (NOT EXISTS "\${TPC_DISCORD_SDK_BIN}")
         message(FATAL_ERROR "TPC_DISCORD_SDK_BIN must point to discord_partner_sdk.dll")
     endif()
 
     add_library(tpc_discord_sdk OBJECT
         src/connectors/discord_sdk.cpp
+        src/connectors/icon_server.cpp
     )
 
     target_compile_features(tpc_discord_sdk PRIVATE cxx_std_20)
 
     target_include_directories(tpc_discord_sdk PRIVATE
         src
-        ${TPC_DISCORD_SDK_INCLUDE_DIR}
+        \${TPC_DISCORD_SDK_INCLUDE_DIR}
     )
 
     target_compile_definitions(tpc_discord_sdk PRIVATE
@@ -69,7 +70,11 @@ if (TPC_ENABLE_DISCORD_SDK)
     )
 
     target_link_libraries(tpc PRIVATE
-        "${TPC_DISCORD_SDK_LIBRARY}"
+        "\${TPC_DISCORD_SDK_LIBRARY}"
+        shell32
+        shlwapi
+        gdiplus
+        winhttp
     )
 
     target_compile_definitions(tpc PRIVATE
@@ -77,8 +82,8 @@ if (TPC_ENABLE_DISCORD_SDK)
     )
 
     add_custom_command(TARGET tpc POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${TPC_DISCORD_SDK_BIN}"
+        COMMAND \${CMAKE_COMMAND} -E copy_if_different
+        "\${TPC_DISCORD_SDK_BIN}"
         "$<TARGET_FILE_DIR:tpc>"
     )
 endif()
