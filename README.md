@@ -139,6 +139,8 @@ cmake --build build --config Release
 
 The Discord adapter is compiled as a separate C++20 target so the rest of TPC can remain C++17. TPC also copies discord_partner_sdk.dll beside tpc.exe after an SDK-enabled build. Discord's standalone C++ SDK guide requires C++20 or greater and documents the Windows discord_partner_sdk.lib link library and discord_partner_sdk.dll runtime dependency.
 
+When a target's `APP_RPC.assets.large_image` is set to `"auto"`, the Discord connector extracts the focused executable's Windows icon, encodes it as PNG, uploads it to `icon-server`, and uses the returned HTTPS image URL for the Rich Presence asset. The previous icon is replaced atomically on target changes, and the current icon is deleted when the connector clears.
+
 `tpc_title` is user-customizable. It is rendered as the first line of the TPC TUI box and is also used as the Windows console title bar while that target is active.
 
 Unknown `{variable}` placeholders are preserved instead of being silently removed.
