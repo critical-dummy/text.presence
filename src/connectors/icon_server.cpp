@@ -58,12 +58,12 @@ bool find_png_encoder(CLSID& clsid) {
 }
 
 struct IconResourceCandidate {
-    WORD group_id = 0;
     WORD icon_id = 0;
     UINT width = 0;
     UINT height = 0;
     WORD bit_count = 0;
     DWORD image_bytes = 0;
+    bool png = false;
 };
 
 struct EnumIconContext {
