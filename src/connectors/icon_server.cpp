@@ -7,6 +7,8 @@
 #include <gdiplus.h>
 #include <shellapi.h>
 #include <shlwapi.h>
+#include <shobjidl.h>
+#include <objbase.h>
 #include <winhttp.h>
 #endif
 
