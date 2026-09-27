@@ -3,7 +3,9 @@
 
 #include "discord_sdk.hpp"
 
+#include "icon_server.hpp"
 #include "tpc/json.hpp"
+#include "tpc/target_detector.hpp"
 
 #include <cerrno>
 #include <cstdint>
@@ -63,8 +65,10 @@ namespace tpc {
 
 struct DiscordSdkConnector::Impl {
     discordpp::Client client;
+    IconServerClient icon_server;
     std::uint64_t application_id = 0;
     bool configured = false;
+    bool using_auto_icon = false;
 };
 
 DiscordSdkConnector::DiscordSdkConnector()
@@ -73,6 +77,8 @@ DiscordSdkConnector::DiscordSdkConnector()
 DiscordSdkConnector::~DiscordSdkConnector() {
     if (impl_ != nullptr) {
         impl_->client.ClearRichPresence();
+        impl_->icon_server.clear();
+
         delete impl_;
         impl_ = nullptr;
     }
@@ -96,7 +102,11 @@ bool DiscordSdkConnector::publish(const std::string& payload) {
 
         std::uint64_t application_id = 0;
 
-        if (!read_uint64_string(root, "application_id", application_id)) {
+        if (!read_uint64_string(
+                root,
+                "application_id",
+                application_id
+            )) {
             return false;
         }
 
@@ -125,15 +135,32 @@ bool DiscordSdkConnector::publish(const std::string& payload) {
         }
 
         const JsonValue* assets = root.find("assets");
+        bool auto_icon_requested = false;
 
         if (assets != nullptr && assets->is_object()) {
             discordpp::ActivityAssets activity_assets;
             bool has_assets = false;
 
-            if (read_string(*assets, "large_image", value) &&
-                !value.empty()) {
-                activity_assets.SetLargeImage(value);
-                has_assets = true;
+            std::string large_image;
+
+            if (read_string(*assets, "large_image", large_image) &&
+                !large_image.empty()) {
+                if (large_image == "auto") {
+                    auto_icon_requested = true;
+
+                    std::string icon_url;
+
+                    if (impl_->icon_server.sync(
+                            TargetDetector::foreground_process_path(),
+                            icon_url
+                        )) {
+                        activity_assets.SetLargeImage(icon_url);
+                        has_assets = true;
+                    }
+                } else {
+                    activity_assets.SetLargeImage(large_image);
+                    has_assets = true;
+                }
             }
 
             if (read_string(*assets, "large_text", value) &&
@@ -159,6 +186,12 @@ bool DiscordSdkConnector::publish(const std::string& payload) {
             }
         }
 
+        if (!auto_icon_requested && impl_->using_auto_icon) {
+            impl_->icon_server.clear();
+        }
+
+        impl_->using_auto_icon = auto_icon_requested;
+
         impl_->client.UpdateRichPresence(
             std::move(activity),
             [](discordpp::ClientResult) {}
@@ -176,6 +209,8 @@ void DiscordSdkConnector::clear() {
     }
 
     impl_->client.ClearRichPresence();
+    impl_->icon_server.clear();
+    impl_->using_auto_icon = false;
 }
 
 void DiscordSdkConnector::tick() {
