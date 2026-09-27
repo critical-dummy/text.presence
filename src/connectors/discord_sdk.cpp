@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <limits>
+#include <iostream>
 #include <string>
 #include <utility>
 
@@ -194,7 +195,25 @@ bool DiscordSdkConnector::publish(const std::string& payload) {
 
         impl_->client.UpdateRichPresence(
             std::move(activity),
-            [](discordpp::ClientResult) {}
+            [](discordpp::ClientResult result) {
+                if (!result.Successful()) {
+                    std::cerr
+                        << "Discord UpdateRichPresence failed: "
+                        << result.ToString()
+                        << " (code="
+                        << result.ErrorCode()
+                        << ")\\n";
+
+                    const std::string response = result.ResponseBody();
+
+                    if (!response.empty()) {
+                        std::cerr
+                            << "Discord response: "
+                            << response
+                            << "\\n";
+                    }
+                }
+            }
         );
 
         return true;
