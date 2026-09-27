@@ -36,7 +36,7 @@ unsigned long TargetDetector::foreground_process_id() {
     return static_cast<unsigned long>(process_id);
 }
 
-std::wstring TargetDetector::foreground_process_name() {
+std::wstring TargetDetector::foreground_process_path() {
     const DWORD process_id =
         static_cast<DWORD>(foreground_process_id());
 
@@ -62,9 +62,16 @@ std::wstring TargetDetector::foreground_process_name() {
     if (!ok || path_size == 0) return {};
 
     path.resize(path_size);
+    return path;
+}
+
+std::wstring TargetDetector::foreground_process_name() {
+    std::wstring path = foreground_process_path();
+
+    if (path.empty()) return {};
 
     const std::wstring::size_type separator =
-        path.find_last_of(L"\\/");
+        path.find_last_of(L"\/");
 
     if (separator != std::wstring::npos) {
         return path.substr(separator + 1);
@@ -104,6 +111,10 @@ bool TargetDetector::process_exists(const std::wstring&) {
 
 unsigned long TargetDetector::foreground_process_id() {
     return 0;
+}
+
+std::wstring TargetDetector::foreground_process_path() {
+    return {};
 }
 
 std::wstring TargetDetector::foreground_process_name() {
