@@ -71,7 +71,7 @@ std::wstring TargetDetector::foreground_process_name() {
     if (path.empty()) return {};
 
     const std::wstring::size_type separator =
-        path.find_last_of(L"\/");
+        path.find_last_of(L"\\/");
 
     if (separator != std::wstring::npos) {
         return path.substr(separator + 1);
