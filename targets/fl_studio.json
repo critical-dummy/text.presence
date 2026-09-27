@@ -16,7 +16,7 @@
     "details": "{window}",
     "state": "{provider} • {process}",
     "assets": {
-      "large_image": "fl_studio",
+      "large_image": "auto",
       "large_text": "FL Studio"
     }
   }
