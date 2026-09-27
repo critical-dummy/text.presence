@@ -12,10 +12,6 @@
 #include <string>
 #include <utility>
 
-#ifdef _WIN32
-#include <windows.h>
-#endif
-
 namespace {
 
 bool read_string(
