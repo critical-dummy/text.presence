@@ -124,6 +124,41 @@ bool DiscordSdkConnector::publish(const std::string& payload) {
             activity.SetState(value);
         }
 
+        const JsonValue* assets = root.find("assets");
+
+        if (assets != nullptr && assets->is_object()) {
+            discordpp::ActivityAssets activity_assets;
+            bool has_assets = false;
+
+            if (read_string(*assets, "large_image", value) &&
+                !value.empty()) {
+                activity_assets.SetLargeImage(value);
+                has_assets = true;
+            }
+
+            if (read_string(*assets, "large_text", value) &&
+                !value.empty()) {
+                activity_assets.SetLargeText(value);
+                has_assets = true;
+            }
+
+            if (read_string(*assets, "small_image", value) &&
+                !value.empty()) {
+                activity_assets.SetSmallImage(value);
+                has_assets = true;
+            }
+
+            if (read_string(*assets, "small_text", value) &&
+                !value.empty()) {
+                activity_assets.SetSmallText(value);
+                has_assets = true;
+            }
+
+            if (has_assets) {
+                activity.SetAssets(std::move(activity_assets));
+            }
+        }
+
         impl_->client.UpdateRichPresence(
             std::move(activity),
             [](discordpp::ClientResult) {}
