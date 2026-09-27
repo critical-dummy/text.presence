@@ -90,9 +90,46 @@ bool extract_png(
     bool success = false;
 
     do {
-        Gdiplus::Bitmap bitmap(icon);
+        Gdiplus::Bitmap source(icon);
+
+        if (source.GetLastStatus() != Gdiplus::Ok ||
+            source.GetWidth() == 0 ||
+            source.GetHeight() == 0) {
+            break;
+        }
+
+        Gdiplus::Bitmap bitmap(1024, 1024, PixelFormat32bppARGB);
 
         if (bitmap.GetLastStatus() != Gdiplus::Ok) {
+            break;
+        }
+
+        Gdiplus::Graphics graphics(&bitmap);
+
+        if (graphics.GetLastStatus() != Gdiplus::Ok) {
+            break;
+        }
+
+        graphics.Clear(Gdiplus::Color(0, 0, 0, 0));
+        graphics.SetInterpolationMode(
+            Gdiplus::InterpolationModeHighQualityBicubic
+        );
+        graphics.SetPixelOffsetMode(
+            Gdiplus::PixelOffsetModeHighQuality
+        );
+        graphics.SetCompositingMode(
+            Gdiplus::CompositingModeSourceOver
+        );
+
+        if (graphics.DrawImage(
+                &source,
+                Gdiplus::Rect(0, 0, 1024, 1024),
+                0,
+                0,
+                static_cast<INT>(source.GetWidth()),
+                static_cast<INT>(source.GetHeight()),
+                Gdiplus::UnitPixel
+            ) != Gdiplus::Ok) {
             break;
         }
 
