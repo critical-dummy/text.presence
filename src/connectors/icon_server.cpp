@@ -62,16 +62,48 @@ bool extract_png(
         return false;
     }
 
-    HICON icon = nullptr;
+    IShellItem* item = nullptr;
 
-    if (ExtractIconExW(
+    const HRESULT item_result =
+        SHCreateItemFromParsingName(
             executable_path.c_str(),
-            0,
-            &icon,
             nullptr,
-            1
-        ) == 0 ||
-        icon == nullptr) {
+            IID_PPV_ARGS(&item)
+        );
+
+    if (FAILED(item_result) || item == nullptr) {
+        return false;
+    }
+
+    IShellItemImageFactory* image_factory = nullptr;
+
+    const HRESULT factory_result =
+        item->QueryInterface(
+            IID_PPV_ARGS(&image_factory)
+        );
+
+    item->Release();
+
+    if (FAILED(factory_result) || image_factory == nullptr) {
+        return false;
+    }
+
+    HBITMAP bitmap_handle = nullptr;
+
+    SIZE requested_size{};
+    requested_size.cx = 256;
+    requested_size.cy = 256;
+
+    const HRESULT image_result =
+        image_factory->GetImage(
+            requested_size,
+            SIIGBF_ICONONLY | SIIGBF_BIGGERSIZEOK,
+            &bitmap_handle
+        );
+
+    image_factory->Release();
+
+    if (FAILED(image_result) || bitmap_handle == nullptr) {
         return false;
     }
 
@@ -83,53 +115,16 @@ bool extract_png(
             &startup_input,
             nullptr
         ) != Gdiplus::Ok) {
-        DestroyIcon(icon);
+        DeleteObject(bitmap_handle);
         return false;
     }
 
     bool success = false;
 
     do {
-        Gdiplus::Bitmap source(icon);
-
-        if (source.GetLastStatus() != Gdiplus::Ok ||
-            source.GetWidth() == 0 ||
-            source.GetHeight() == 0) {
-            break;
-        }
-
-        Gdiplus::Bitmap bitmap(1024, 1024, PixelFormat32bppARGB);
+        Gdiplus::Bitmap bitmap(bitmap_handle, nullptr);
 
         if (bitmap.GetLastStatus() != Gdiplus::Ok) {
-            break;
-        }
-
-        Gdiplus::Graphics graphics(&bitmap);
-
-        if (graphics.GetLastStatus() != Gdiplus::Ok) {
-            break;
-        }
-
-        graphics.Clear(Gdiplus::Color(0, 0, 0, 0));
-        graphics.SetInterpolationMode(
-            Gdiplus::InterpolationModeHighQualityBicubic
-        );
-        graphics.SetPixelOffsetMode(
-            Gdiplus::PixelOffsetModeHighQuality
-        );
-        graphics.SetCompositingMode(
-            Gdiplus::CompositingModeSourceOver
-        );
-
-        if (graphics.DrawImage(
-                &source,
-                Gdiplus::Rect(0, 0, 1024, 1024),
-                0,
-                0,
-                static_cast<INT>(source.GetWidth()),
-                static_cast<INT>(source.GetHeight()),
-                Gdiplus::UnitPixel
-            ) != Gdiplus::Ok) {
             break;
         }
 
@@ -150,17 +145,16 @@ bool extract_png(
 
         if (save_status == Gdiplus::Ok) {
             STATSTG stat{};
-            LARGE_INTEGER origin{};
 
             if (SUCCEEDED(
                     stream->Stat(&stat, STATFLAG_NONAME)
                 ) &&
                 stat.cbSize.QuadPart > 0 &&
                 stat.cbSize.QuadPart <=
-                    static_cast<LONGLONG>(16 * 1024 * 1024) &&
+                    static_cast<LONGLONG>(1024 * 1024) &&
                 SUCCEEDED(
                     stream->Seek(
-                        origin,
+                        LARGE_INTEGER{},
                         STREAM_SEEK_SET,
                         nullptr
                     )
@@ -190,7 +184,7 @@ bool extract_png(
     } while (false);
 
     Gdiplus::GdiplusShutdown(token);
-    DestroyIcon(icon);
+    DeleteObject(bitmap_handle);
 
     return success && !output.empty();
 }
