@@ -276,29 +276,172 @@ bool extract_png(
         return false;
     }
 
-    if (is_png_resource(icon_bytes, icon_size)) {
-        if (icon_size > 1024 * 1024) {
-            std::cerr
-                << "Icon server: embedded PNG icon exceeds upload limit\n";
-            FreeLibrary(module);
-            return false;
-        }
+    const bool embedded_png = is_png_resource(icon_bytes, icon_size);
 
-        output.assign(
-            static_cast<const std::uint8_t*>(icon_bytes),
-            static_cast<const std::uint8_t*>(icon_bytes) + icon_size
-        );
-
+    if (embedded_png) {
         std::cerr
             << "Icon server: using embedded PNG bytes="
             << icon_size
             << "\n";
-
-        FreeLibrary(module);
-        return true;
     }
 
-    HICON icon = CreateIconFromResourceEx(
+    HICON icon = nullptr;
+
+    if (!embedded_png) {
+        icon = CreateIconFromResourceEx(
+            static_cast<PBYTE>(
+                const_cast<void*>(icon_bytes)
+            ),
+            icon_size,
+            TRUE,
+            0x00030000,
+            static_cast<int>(context.best.width),
+            static_cast<int>(context.best.height),
+            LR_DEFAULTCOLOR
+        );
+
+        if (icon == nullptr) {
+            FreeLibrary(module);
+            return false;
+        }
+    }
+
+    Gdiplus::GdiplusStartupInput startup_input{};
+    ULONG_PTR token = 0;
+
+    if (Gdiplus::GdiplusStartup(
+            &token,
+            &startup_input,
+            nullptr
+        ) != Gdiplus::Ok) {
+        if (icon != nullptr) {
+            DestroyIcon(icon);
+        }
+        FreeLibrary(module);
+        return false;
+    }
+
+    bool success = false;
+
+    do {
+        Gdiplus::Bitmap* bitmap_ptr = nullptr;
+        IStream* input_stream = nullptr;
+
+        if (embedded_png) {
+            input_stream = SHCreateMemStream(
+                static_cast<const BYTE*>(icon_bytes),
+                icon_size
+            );
+
+            if (input_stream == nullptr) {
+                break;
+            }
+
+            bitmap_ptr = new Gdiplus::Bitmap(input_stream);
+
+            if (bitmap_ptr->GetLastStatus() != Gdiplus::Ok) {
+                delete bitmap_ptr;
+                input_stream->Release();
+                break;
+            }
+        } else {
+            bitmap_ptr = new Gdiplus::Bitmap(icon);
+
+            if (bitmap_ptr->GetLastStatus() != Gdiplus::Ok) {
+                delete bitmap_ptr;
+                break;
+            }
+        }
+
+        Gdiplus::Bitmap& bitmap = *bitmap_ptr;
+
+        std::cerr
+            << "Icon server: normalized PNG "
+            << bitmap.GetWidth()
+            << "x"
+            << bitmap.GetHeight()
+            << "\n";
+
+        CLSID png_clsid{};
+
+        if (!find_png_encoder(png_clsid)) {
+            delete bitmap_ptr;
+            if (input_stream != nullptr) {
+                input_stream->Release();
+            }
+            break;
+        }
+
+        IStream* stream = SHCreateMemStream(nullptr, 0);
+
+        if (stream == nullptr) {
+            delete bitmap_ptr;
+            if (input_stream != nullptr) {
+                input_stream->Release();
+            }
+            break;
+        }
+
+        const Gdiplus::Status save_status =
+            bitmap.Save(stream, &png_clsid, nullptr);
+
+        if (save_status == Gdiplus::Ok) {
+            STATSTG stat{};
+
+            if (SUCCEEDED(
+                    stream->Stat(&stat, STATFLAG_NONAME)
+                ) &&
+                stat.cbSize.QuadPart > 0 &&
+                stat.cbSize.QuadPart <=
+                    static_cast<LONGLONG>(1024 * 1024) &&
+                SUCCEEDED(
+                    stream->Seek(
+                        LARGE_INTEGER{},
+                        STREAM_SEEK_SET,
+                        nullptr
+                    )
+                )) {
+                output.resize(
+                    static_cast<std::size_t>(
+                        stat.cbSize.QuadPart
+                    )
+                );
+
+                ULONG read = 0;
+
+                if (SUCCEEDED(
+                        stream->Read(
+                            output.data(),
+                            static_cast<ULONG>(output.size()),
+                            &read
+                        )
+                    ) &&
+                    read == output.size()) {
+                    success = true;
+                }
+            }
+        }
+
+        stream->Release();
+        delete bitmap_ptr;
+
+        if (input_stream != nullptr) {
+            input_stream->Release();
+        }
+    } while (false);
+
+    Gdiplus::GdiplusShutdown(token);
+
+    if (icon != nullptr) {
+        DestroyIcon(icon);
+    }
+
+    FreeLibrary(module);
+
+    return success && !output.empty();
+}
+
+bool http_request(
         static_cast<PBYTE>(
             const_cast<void*>(icon_bytes)
         ),
